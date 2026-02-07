@@ -54,62 +54,225 @@ class NPC {
     }
     
     create(position) {
-        // Create NPC body (using box for better Cannon.js compatibility)
-        const body = BABYLON.MeshBuilder.CreateBox(`npc_${this.id}`, {
-            width: 0.7,
-            height: 1.8,
-            depth: 0.7
-        }, this.scene);
-        body.position = position.clone();
+        // Root transform for the NPC
+        const root = new BABYLON.TransformNode(`npc_root_${this.id}`, this.scene);
+        root.position = position.clone();
         
-        // Create material based on team
-        const mat = new BABYLON.StandardMaterial(`npcMat_${this.id}`, this.scene);
+        // Materials based on team
+        const skinMat = new BABYLON.StandardMaterial(`skinMat_${this.id}`, this.scene);
+        skinMat.diffuseColor = new BABYLON.Color3(0.76, 0.57, 0.42); // Skin tone
+        
+        const clothesMat = new BABYLON.StandardMaterial(`clothesMat_${this.id}`, this.scene);
         if (this.team === 'police') {
-            mat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.3); // Dark blue
+            clothesMat.diffuseColor = new BABYLON.Color3(0.1, 0.15, 0.35); // Dark blue uniform
         } else {
-            mat.diffuseColor = new BABYLON.Color3(0.3, 0.15, 0.1); // Dark red/brown
+            clothesMat.diffuseColor = new BABYLON.Color3(0.25, 0.2, 0.15); // Brown/tan clothes
         }
-        body.material = mat;
         
-        // Add head
+        const pantsMat = new BABYLON.StandardMaterial(`pantsMat_${this.id}`, this.scene);
+        pantsMat.diffuseColor = this.team === 'police' 
+            ? new BABYLON.Color3(0.1, 0.1, 0.2) 
+            : new BABYLON.Color3(0.15, 0.12, 0.1);
+        
+        // === BODY PARTS ===
+        
+        // Torso (main body)
+        const torso = BABYLON.MeshBuilder.CreateBox(`torso_${this.id}`, {
+            width: 0.45, height: 0.55, depth: 0.25
+        }, this.scene);
+        torso.position.y = 1.1;
+        torso.parent = root;
+        torso.material = clothesMat;
+        
+        // Head
         const head = BABYLON.MeshBuilder.CreateSphere(`head_${this.id}`, {
-            diameter: 0.35
+            diameter: 0.28, segments: 12
         }, this.scene);
-        head.position = new BABYLON.Vector3(0, 1.1, 0);
-        head.parent = body;
-        head.material = mat;
+        head.position.y = 1.55;
+        head.parent = root;
+        head.material = skinMat;
         
-        // Add weapon visual
-        const weapon = BABYLON.MeshBuilder.CreateBox(`weapon_${this.id}`, {
-            width: 0.05, height: 0.05, depth: 0.5
+        // Neck
+        const neck = BABYLON.MeshBuilder.CreateCylinder(`neck_${this.id}`, {
+            diameter: 0.12, height: 0.12
         }, this.scene);
-        weapon.position = new BABYLON.Vector3(0.3, 0.3, 0.3);
-        weapon.rotation.y = -0.2;
-        weapon.parent = body;
+        neck.position.y = 1.38;
+        neck.parent = root;
+        neck.material = skinMat;
+        
+        // === ARMS ===
+        
+        // Left upper arm
+        const leftUpperArm = BABYLON.MeshBuilder.CreateBox(`lUpperArm_${this.id}`, {
+            width: 0.12, height: 0.3, depth: 0.12
+        }, this.scene);
+        leftUpperArm.position = new BABYLON.Vector3(-0.32, 1.2, 0);
+        leftUpperArm.parent = root;
+        leftUpperArm.material = clothesMat;
+        
+        // Left lower arm
+        const leftLowerArm = BABYLON.MeshBuilder.CreateBox(`lLowerArm_${this.id}`, {
+            width: 0.1, height: 0.28, depth: 0.1
+        }, this.scene);
+        leftLowerArm.position = new BABYLON.Vector3(-0.32, 0.9, 0.1);
+        leftLowerArm.rotation.x = -0.5;
+        leftLowerArm.parent = root;
+        leftLowerArm.material = skinMat;
+        
+        // Right upper arm
+        const rightUpperArm = BABYLON.MeshBuilder.CreateBox(`rUpperArm_${this.id}`, {
+            width: 0.12, height: 0.3, depth: 0.12
+        }, this.scene);
+        rightUpperArm.position = new BABYLON.Vector3(0.32, 1.2, 0);
+        rightUpperArm.parent = root;
+        rightUpperArm.material = clothesMat;
+        
+        // Right lower arm (holds weapon)
+        const rightLowerArm = BABYLON.MeshBuilder.CreateBox(`rLowerArm_${this.id}`, {
+            width: 0.1, height: 0.28, depth: 0.1
+        }, this.scene);
+        rightLowerArm.position = new BABYLON.Vector3(0.32, 0.9, 0.15);
+        rightLowerArm.rotation.x = -0.7;
+        rightLowerArm.parent = root;
+        rightLowerArm.material = skinMat;
+        
+        // === LEGS ===
+        
+        // Left upper leg
+        const leftUpperLeg = BABYLON.MeshBuilder.CreateBox(`lUpperLeg_${this.id}`, {
+            width: 0.15, height: 0.4, depth: 0.15
+        }, this.scene);
+        leftUpperLeg.position = new BABYLON.Vector3(-0.12, 0.6, 0);
+        leftUpperLeg.parent = root;
+        leftUpperLeg.material = pantsMat;
+        
+        // Left lower leg
+        const leftLowerLeg = BABYLON.MeshBuilder.CreateBox(`lLowerLeg_${this.id}`, {
+            width: 0.12, height: 0.4, depth: 0.12
+        }, this.scene);
+        leftLowerLeg.position = new BABYLON.Vector3(-0.12, 0.2, 0);
+        leftLowerLeg.parent = root;
+        leftLowerLeg.material = pantsMat;
+        
+        // Right upper leg
+        const rightUpperLeg = BABYLON.MeshBuilder.CreateBox(`rUpperLeg_${this.id}`, {
+            width: 0.15, height: 0.4, depth: 0.15
+        }, this.scene);
+        rightUpperLeg.position = new BABYLON.Vector3(0.12, 0.6, 0);
+        rightUpperLeg.parent = root;
+        rightUpperLeg.material = pantsMat;
+        
+        // Right lower leg
+        const rightLowerLeg = BABYLON.MeshBuilder.CreateBox(`rLowerLeg_${this.id}`, {
+            width: 0.12, height: 0.4, depth: 0.12
+        }, this.scene);
+        rightLowerLeg.position = new BABYLON.Vector3(0.12, 0.2, 0);
+        rightLowerLeg.parent = root;
+        rightLowerLeg.material = pantsMat;
+        
+        // === WEAPON ===
+        const weapon = BABYLON.MeshBuilder.CreateBox(`weapon_${this.id}`, {
+            width: 0.04, height: 0.04, depth: 0.45
+        }, this.scene);
+        weapon.position = new BABYLON.Vector3(0.35, 1.0, 0.35);
+        weapon.rotation.x = -0.3;
+        weapon.parent = root;
         
         const weaponMat = new BABYLON.StandardMaterial(`weaponMat_${this.id}`, this.scene);
-        weaponMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        weaponMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+        weaponMat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
         weapon.material = weaponMat;
         
-        // Use collision system instead of physics
-        body.checkCollisions = true;
-        body.ellipsoid = new BABYLON.Vector3(0.35, 0.9, 0.35);
-        
-        // Store references
-        this.mesh = body;
-        this.bodyParts.head = head;
-        this.bodyParts.weapon = weapon;
+        // === COLLISION BOX (invisible) ===
+        const collider = BABYLON.MeshBuilder.CreateBox(`collider_${this.id}`, {
+            width: 0.6, height: 1.8, depth: 0.5
+        }, this.scene);
+        collider.position.y = 0.9;
+        collider.parent = root;
+        collider.visibility = 0;
+        collider.checkCollisions = true;
+        collider.isPickable = true;
         
         // Set metadata for hit detection
-        body.metadata = {
+        collider.metadata = {
             isNPC: true,
             npcInstance: this,
             team: this.team
         };
-        body.isPickable = true;
+        
+        // Store references
+        this.mesh = root;
+        this.collider = collider;
+        this.bodyParts = {
+            head, torso, neck,
+            leftUpperArm, leftLowerArm,
+            rightUpperArm, rightLowerArm,
+            leftUpperLeg, leftLowerLeg,
+            rightUpperLeg, rightLowerLeg,
+            weapon
+        };
+        
+        // Animation state
+        this.walkCycle = 0;
+        this.isCrouching = false;
         
         // Generate patrol points around spawn
         this.generatePatrolPoints(position);
+    }
+    
+    // Walking animation
+    animateWalk(deltaTime, isMoving) {
+        if (!isMoving) {
+            // Reset to idle pose
+            this.walkCycle = 0;
+            this.resetLimbPositions();
+            return;
+        }
+        
+        this.walkCycle += deltaTime * 8;
+        const swing = Math.sin(this.walkCycle) * 0.4;
+        
+        // Leg swing
+        if (this.bodyParts.leftUpperLeg) {
+            this.bodyParts.leftUpperLeg.rotation.x = swing;
+            this.bodyParts.rightUpperLeg.rotation.x = -swing;
+        }
+        
+        // Arm swing (opposite to legs)
+        if (this.bodyParts.leftUpperArm) {
+            this.bodyParts.leftUpperArm.rotation.x = -swing * 0.5;
+        }
+        
+        // Subtle body bob
+        if (this.bodyParts.torso) {
+            this.bodyParts.torso.position.y = 1.1 + Math.abs(Math.sin(this.walkCycle * 2)) * 0.02;
+        }
+    }
+    
+    resetLimbPositions() {
+        if (this.bodyParts.leftUpperLeg) {
+            this.bodyParts.leftUpperLeg.rotation.x = 0;
+            this.bodyParts.rightUpperLeg.rotation.x = 0;
+            this.bodyParts.leftUpperArm.rotation.x = 0;
+        }
+        if (this.bodyParts.torso) {
+            this.bodyParts.torso.position.y = this.isCrouching ? 0.7 : 1.1;
+        }
+    }
+    
+    // Crouch for cover
+    setCrouch(crouching) {
+        if (this.isCrouching === crouching) return;
+        this.isCrouching = crouching;
+        
+        const targetY = crouching ? -0.4 : 0;
+        
+        // Animate crouch
+        Object.values(this.bodyParts).forEach(part => {
+            if (part && part.position) {
+                part.position.y += targetY - (crouching ? 0 : -0.4);
+            }
+        });
     }
     
     generatePatrolPoints(origin) {
@@ -293,9 +456,24 @@ class NPC {
         if (distance > 0.1) {
             direction.normalize();
             
-            // Move directly (no physics)
+            // Check for collisions before moving
             const movement = direction.scale(speed * deltaTime);
-            this.mesh.position.addInPlace(movement);
+            const nextPos = this.mesh.position.add(movement);
+            
+            // Wall collision check
+            if (!this.checkCollision(nextPos)) {
+                this.mesh.position.addInPlace(movement);
+            } else {
+                // Try sliding along walls
+                const slideX = new BABYLON.Vector3(movement.x, 0, 0);
+                const slideZ = new BABYLON.Vector3(0, 0, movement.z);
+                
+                if (!this.checkCollision(this.mesh.position.add(slideX))) {
+                    this.mesh.position.addInPlace(slideX);
+                } else if (!this.checkCollision(this.mesh.position.add(slideZ))) {
+                    this.mesh.position.addInPlace(slideZ);
+                }
+            }
             
             // Rotate towards target
             const targetRotation = Math.atan2(direction.x, direction.z);
@@ -304,9 +482,58 @@ class NPC {
                 targetRotation,
                 deltaTime * this.rotationSpeed
             );
+            
+            // Animate walking
+            this.animateWalk(deltaTime, true);
+        } else {
+            this.animateWalk(deltaTime, false);
         }
         
         return distance;
+    }
+    
+    checkCollision(position) {
+        // Raycast to check for walls/obstacles
+        const rayStart = position.clone();
+        rayStart.y = 0.5;
+        
+        const directions = [
+            new BABYLON.Vector3(1, 0, 0),
+            new BABYLON.Vector3(-1, 0, 0),
+            new BABYLON.Vector3(0, 0, 1),
+            new BABYLON.Vector3(0, 0, -1),
+        ];
+        
+        for (const dir of directions) {
+            const ray = new BABYLON.Ray(rayStart, dir, 0.4);
+            const hit = this.scene.pickWithRay(ray, (mesh) => {
+                return mesh.checkCollisions && 
+                       !mesh.name.includes('npc_') && 
+                       !mesh.name.includes('collider_') &&
+                       !mesh.name.includes('player') &&
+                       mesh.name !== 'ground';
+            });
+            
+            if (hit && hit.hit) {
+                return true;
+            }
+        }
+        
+        // Check collision with other NPCs
+        const npcs = this.scene.meshes.filter(m => 
+            m.name.startsWith('collider_') && 
+            m !== this.collider &&
+            m.metadata?.isNPC
+        );
+        
+        for (const npc of npcs) {
+            const dist = BABYLON.Vector3.Distance(position, npc.parent.position);
+            if (dist < 0.8) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     lookAt(target) {
@@ -415,36 +642,71 @@ class NPC {
     createMuzzleFlash() {
         if (!this.bodyParts.weapon) return;
         
-        const flash = BABYLON.MeshBuilder.CreateSphere("npcFlash", { diameter: 0.15 }, this.scene);
+        const flash = BABYLON.MeshBuilder.CreateSphere(`npcFlash_${this.id}`, { diameter: 0.12 }, this.scene);
         flash.parent = this.bodyParts.weapon;
-        flash.position = new BABYLON.Vector3(0, 0, 0.3);
+        flash.position = new BABYLON.Vector3(0, 0, 0.25);
         
-        const flashMat = new BABYLON.StandardMaterial("npcFlashMat", this.scene);
-        flashMat.emissiveColor = new BABYLON.Color3(1, 0.8, 0.2);
+        const flashMat = new BABYLON.StandardMaterial(`npcFlashMat_${this.id}`, this.scene);
+        flashMat.emissiveColor = new BABYLON.Color3(1, 0.7, 0.2);
         flashMat.disableLighting = true;
         flash.material = flashMat;
         
+        // Weapon kick animation
+        if (this.bodyParts.rightLowerArm) {
+            const origRot = this.bodyParts.rightLowerArm.rotation.x;
+            this.bodyParts.rightLowerArm.rotation.x = origRot - 0.15;
+            
+            setTimeout(() => {
+                if (this.bodyParts.rightLowerArm) {
+                    this.bodyParts.rightLowerArm.rotation.x = origRot;
+                }
+            }, 80);
+        }
+        
         setTimeout(() => {
             flash.dispose();
-        }, 50);
+            flashMat.dispose();
+        }, 60);
     }
     
-    takeDamage(amount) {
+    takeDamage(amount, hitPart = null) {
         if (this.isDead) return false;
+        
+        // Headshot bonus damage
+        if (hitPart && hitPart.name && hitPart.name.includes('head')) {
+            amount *= 2.5;
+        }
         
         this.health -= amount;
         
-        // Flash red when hit
-        if (this.mesh.material) {
-            const originalColor = this.mesh.material.diffuseColor.clone();
-            this.mesh.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+        // Flash red when hit - all body parts
+        const originalColors = {};
+        Object.entries(this.bodyParts).forEach(([key, part]) => {
+            if (part && part.material && part.material.diffuseColor) {
+                originalColors[key] = part.material.diffuseColor.clone();
+                part.material.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
+            }
+        });
+        
+        // Flinch animation
+        if (this.bodyParts.torso) {
+            const originalRotX = this.bodyParts.torso.rotation.x;
+            this.bodyParts.torso.rotation.x = -0.1;
             
             setTimeout(() => {
-                if (this.mesh.material) {
-                    this.mesh.material.diffuseColor = originalColor;
+                if (this.bodyParts.torso) {
+                    this.bodyParts.torso.rotation.x = originalRotX;
                 }
             }, 100);
         }
+        
+        setTimeout(() => {
+            Object.entries(this.bodyParts).forEach(([key, part]) => {
+                if (part && part.material && originalColors[key]) {
+                    part.material.diffuseColor = originalColors[key];
+                }
+            });
+        }, 100);
         
         // Alert nearby NPCs
         this.alertNearbyNPCs();
@@ -487,27 +749,61 @@ class NPC {
         this.isDead = true;
         this.state = NPCState.DEAD;
         
-        // Fall animation
+        // Ragdoll-like fall animation
+        const fallDirection = (Math.random() - 0.5) * 2;
+        let fallProgress = 0;
+        
         const fallAnimation = () => {
-            this.mesh.rotation.x += 0.1;
-            if (this.mesh.rotation.x < Math.PI / 2) {
+            fallProgress += 0.08;
+            
+            // Rotate the whole body
+            this.mesh.rotation.x = Math.min(fallProgress * 1.5, Math.PI / 2);
+            this.mesh.rotation.z = fallDirection * fallProgress * 0.3;
+            
+            // Drop down
+            if (this.mesh.position.y > 0.3) {
+                this.mesh.position.y -= 0.05;
+            }
+            
+            // Limbs go limp
+            if (this.bodyParts.leftUpperArm) {
+                this.bodyParts.leftUpperArm.rotation.x = fallProgress;
+                this.bodyParts.rightUpperArm.rotation.x = fallProgress * 0.8;
+                this.bodyParts.leftUpperLeg.rotation.x = fallProgress * 0.5;
+                this.bodyParts.rightUpperLeg.rotation.x = -fallProgress * 0.3;
+            }
+            
+            if (fallProgress < 1.2) {
                 requestAnimationFrame(fallAnimation);
             }
         };
         fallAnimation();
         
+        // Disable collision
+        if (this.collider) {
+            this.collider.checkCollisions = false;
+            this.collider.isPickable = false;
+        }
+        
         // Fade out and remove after delay
         setTimeout(() => {
+            let alpha = 1;
             const fadeOut = setInterval(() => {
-                if (this.mesh.material) {
-                    this.mesh.material.alpha -= 0.05;
-                    if (this.mesh.material.alpha <= 0) {
-                        clearInterval(fadeOut);
-                        this.dispose();
+                alpha -= 0.03;
+                
+                // Fade all body parts
+                Object.values(this.bodyParts).forEach(part => {
+                    if (part && part.material) {
+                        part.material.alpha = alpha;
                     }
+                });
+                
+                if (alpha <= 0) {
+                    clearInterval(fadeOut);
+                    this.dispose();
                 }
             }, 50);
-        }, 3000);
+        }, 4000);
         
         // Notify game
         if (window.gameInstance) {
@@ -516,9 +812,23 @@ class NPC {
     }
     
     dispose() {
+        // Dispose all body parts
+        Object.values(this.bodyParts).forEach(part => {
+            if (part) {
+                if (part.material) part.material.dispose();
+                part.dispose();
+            }
+        });
+        this.bodyParts = {};
+        
+        // Dispose collider
+        if (this.collider) {
+            this.collider.dispose();
+            this.collider = null;
+        }
+        
+        // Dispose root mesh
         if (this.mesh) {
-            // Dispose all children first
-            this.mesh.getChildMeshes().forEach(child => child.dispose());
             this.mesh.dispose();
             this.mesh = null;
         }
