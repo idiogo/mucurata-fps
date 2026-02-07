@@ -220,19 +220,42 @@ class FavelaMap {
     }
     
     createRamp(x, y, z, width, length, slopeAngle) {
-        const ramp = BABYLON.MeshBuilder.CreateBox(`ramp_${x}_${z}`, {
-            width: width,
-            height: 0.5,
-            depth: length
+        // Create STAIRS instead of ramp (works better with collision)
+        const stairGroup = new BABYLON.TransformNode(`stairs_${x}_${z}`, this.scene);
+        
+        const numSteps = 8;
+        const stepHeight = 0.35;
+        const stepDepth = length / numSteps;
+        
+        for (let i = 0; i < numSteps; i++) {
+            const step = BABYLON.MeshBuilder.CreateBox(`step_${x}_${z}_${i}`, {
+                width: width,
+                height: stepHeight,
+                depth: stepDepth + 0.1 // Slight overlap
+            }, this.scene);
+            
+            step.position = new BABYLON.Vector3(
+                x,
+                y - 1 + (i * stepHeight),
+                z - (length/2) + (i * stepDepth) + stepDepth/2
+            );
+            
+            step.material = this.materials.concrete;
+            step.checkCollisions = true;
+            step.isPickable = true;
+            step.parent = stairGroup;
+            
+            this.meshes.push(step);
+        }
+        
+        // Return a dummy mesh for the array (stairs are already added to meshes)
+        const dummy = BABYLON.MeshBuilder.CreateBox(`stairDummy_${x}_${z}`, {
+            width: 0.1, height: 0.1, depth: 0.1
         }, this.scene);
+        dummy.visibility = 0;
+        dummy.isPickable = false;
         
-        ramp.position = new BABYLON.Vector3(x, y, z);
-        ramp.rotation.x = -slopeAngle; // Negative to slope upward
-        ramp.material = this.materials.concrete;
-        ramp.checkCollisions = true;
-        ramp.isPickable = true;
-        
-        return ramp;
+        return dummy;
     }
     
     createBuildings() {
