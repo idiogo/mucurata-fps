@@ -157,63 +157,31 @@ class FavelaMap {
     }
     
     createTerrain() {
-        // Create sloped terrain to simulate hillside
+        // Simple flat terrain - no floating platforms!
+        // Just ground level with some raised areas
+        
+        // Main play area is flat - buildings provide verticality
+        // Only create a few low raised areas for cover
+        
         const terrainPieces = [];
         
-        // Multiple levels going up the hill
-        for (let level = 0; level < 5; level++) {
-            const yOffset = level * 3; // Reduced height difference
-            const zOffset = -20 + level * 12;
+        // Low cover blocks scattered around
+        for (let i = 0; i < 15; i++) {
+            const x = Utils.random(-40, 40);
+            const z = Utils.random(-40, 40);
             
-            // Create flat platform for this level
-            const platform = BABYLON.MeshBuilder.CreateBox(`platform_${level}`, {
-                width: this.width * 0.8,
-                height: 1,
-                depth: 18
+            const cover = BABYLON.MeshBuilder.CreateBox(`cover_${i}`, {
+                width: Utils.random(2, 4),
+                height: Utils.random(0.5, 1.2),
+                depth: Utils.random(2, 4)
             }, this.scene);
             
-            platform.position = new BABYLON.Vector3(0, yOffset, zOffset);
-            platform.material = this.materials.concrete;
-            platform.checkCollisions = true;
-            platform.isPickable = true;
+            cover.position = new BABYLON.Vector3(x, 0.5, z);
+            cover.material = this.materials.concrete;
+            cover.checkCollisions = true;
+            cover.isPickable = true;
             
-            terrainPieces.push(platform);
-            
-            // Create stairs connecting levels - POSITIONED FURTHER BACK
-            if (level > 0) {
-                // Left stairs
-                const stairsLeft = this.createRamp(
-                    -15,                    // X position (left side)
-                    yOffset - 1.5,          // Y position
-                    zOffset - 14,           // Z position - MORE BACK
-                    6,                      // Width
-                    14,                     // Length
-                    0.25                    // Slope angle
-                );
-                terrainPieces.push(stairsLeft);
-                
-                // Right stairs
-                const stairsRight = this.createRamp(
-                    15,                     // X position (right side)
-                    yOffset - 1.5,          // Y position
-                    zOffset - 14,           // Z position - MORE BACK
-                    6,                      // Width
-                    14,                     // Length
-                    0.25                    // Slope angle
-                );
-                terrainPieces.push(stairsRight);
-                
-                // Center stairs (main access)
-                const stairsCenter = this.createRamp(
-                    0,                      // X position (center)
-                    yOffset - 1.5,          // Y position
-                    zOffset - 16,           // Z position - EVEN MORE BACK
-                    8,                      // Width (wider)
-                    16,                     // Length (longer)
-                    0.2                     // Slope angle
-                );
-                terrainPieces.push(stairsCenter);
-            }
+            terrainPieces.push(cover);
         }
         
         this.meshes.push(...terrainPieces);
@@ -596,9 +564,8 @@ class FavelaMap {
     }
     
     getGroundLevel(x, z) {
-        // Simple heightmap based on z position (going up the hill)
-        const normalizedZ = (z + this.depth/2) / this.depth; // 0 to 1
-        return Math.max(0, normalizedZ * 15); // 0 to 15 units high
+        // Flat terrain - everything at ground level
+        return 0;
     }
     
     createLighting() {
