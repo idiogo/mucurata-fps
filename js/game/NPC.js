@@ -40,10 +40,10 @@ class NPC {
         this.currentPatrolIndex = 0;
         this.targetPosition = null;
         
-        // Detection
-        this.viewDistance = 40;
-        this.viewAngle = 120; // degrees
-        this.hearingDistance = 15;
+        // Detection - can see far!
+        this.viewDistance = 80;
+        this.viewAngle = 150; // degrees
+        this.hearingDistance = 30;
         
         // Mesh
         this.mesh = null;
@@ -596,11 +596,11 @@ class NPC {
             
             const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
             
-            // Move and shoot
-            if (distance > 30) {
-                // Too far - advance while shooting
+            // Move and shoot - fight from distance!
+            if (distance > 50) {
+                // Very far - advance while shooting
                 this.moveTowards(player.collider.position, deltaTime, this.speed * 0.8);
-            } else if (distance < 6) {
+            } else if (distance < 8) {
                 // Too close - back up while shooting
                 const awayDir = this.mesh.position.subtract(player.collider.position).normalize();
                 const backupPos = this.mesh.position.add(awayDir.scale(5));
@@ -885,8 +885,16 @@ class NPC {
         
         // Try to find where the shot came from (player position)
         if (window.gameInstance && window.gameInstance.player) {
-            this.lastSeenPlayerPos = window.gameInstance.player.collider.position.clone();
+            const player = window.gameInstance.player;
+            this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
+            
+            // Look at player immediately
+            this.lookAt(player.collider.position);
+            
+            // SHOOT BACK IMMEDIATELY!
+            this.lastFireTime = 0; // Reset fire cooldown
+            this.tryFireAtPlayer(player);
         }
         
         return false;
