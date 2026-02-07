@@ -171,17 +171,7 @@ class NPC {
         rightLowerLeg.material = pantsMat;
         
         // === WEAPON ===
-        const weapon = BABYLON.MeshBuilder.CreateBox(`weapon_${this.id}`, {
-            width: 0.04, height: 0.04, depth: 0.45
-        }, this.scene);
-        weapon.position = new BABYLON.Vector3(0.35, 1.0, 0.35);
-        weapon.rotation.x = -0.3;
-        weapon.parent = root;
-        
-        const weaponMat = new BABYLON.StandardMaterial(`weaponMat_${this.id}`, this.scene);
-        weaponMat.diffuseColor = new BABYLON.Color3(0.15, 0.15, 0.15);
-        weaponMat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        weapon.material = weaponMat;
+        const weapon = this.createNPCWeapon(root);
         
         // === COLLISION BOX (invisible) ===
         const collider = BABYLON.MeshBuilder.CreateBox(`collider_${this.id}`, {
@@ -218,6 +208,139 @@ class NPC {
         
         // Generate patrol points around spawn
         this.generatePatrolPoints(position);
+    }
+    
+    createNPCWeapon(parent) {
+        const weaponMat = new BABYLON.StandardMaterial(`weaponMat_${this.id}`, this.scene);
+        weaponMat.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.12);
+        weaponMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+        
+        const woodMat = new BABYLON.StandardMaterial(`woodMat_${this.id}`, this.scene);
+        woodMat.diffuseColor = new BABYLON.Color3(0.35, 0.22, 0.12);
+        
+        // Weapon container
+        const weaponRoot = new BABYLON.TransformNode(`weaponRoot_${this.id}`, this.scene);
+        weaponRoot.position = new BABYLON.Vector3(0.28, 0.95, 0.25);
+        weaponRoot.rotation = new BABYLON.Vector3(-0.4, 0.1, 0);
+        weaponRoot.parent = parent;
+        
+        if (this.team === 'police') {
+            // === RIFLE (M4/AR style) ===
+            
+            // Barrel
+            const barrel = BABYLON.MeshBuilder.CreateCylinder(`barrel_${this.id}`, {
+                diameter: 0.025, height: 0.4
+            }, this.scene);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.z = 0.35;
+            barrel.parent = weaponRoot;
+            barrel.material = weaponMat;
+            
+            // Handguard
+            const handguard = BABYLON.MeshBuilder.CreateBox(`handguard_${this.id}`, {
+                width: 0.04, height: 0.045, depth: 0.18
+            }, this.scene);
+            handguard.position.z = 0.2;
+            handguard.parent = weaponRoot;
+            handguard.material = weaponMat;
+            
+            // Receiver
+            const receiver = BABYLON.MeshBuilder.CreateBox(`receiver_${this.id}`, {
+                width: 0.035, height: 0.08, depth: 0.15
+            }, this.scene);
+            receiver.position = new BABYLON.Vector3(0, 0.02, 0.02);
+            receiver.parent = weaponRoot;
+            receiver.material = weaponMat;
+            
+            // Magazine
+            const mag = BABYLON.MeshBuilder.CreateBox(`mag_${this.id}`, {
+                width: 0.02, height: 0.1, depth: 0.045
+            }, this.scene);
+            mag.position = new BABYLON.Vector3(0, -0.06, 0.02);
+            mag.rotation.x = 0.1;
+            mag.parent = weaponRoot;
+            mag.material = weaponMat;
+            
+            // Stock
+            const stock = BABYLON.MeshBuilder.CreateBox(`stock_${this.id}`, {
+                width: 0.03, height: 0.05, depth: 0.15
+            }, this.scene);
+            stock.position = new BABYLON.Vector3(0, 0, -0.12);
+            stock.parent = weaponRoot;
+            stock.material = weaponMat;
+            
+            // Sight
+            const sight = BABYLON.MeshBuilder.CreateBox(`sight_${this.id}`, {
+                width: 0.015, height: 0.025, depth: 0.06
+            }, this.scene);
+            sight.position = new BABYLON.Vector3(0, 0.06, 0.02);
+            sight.parent = weaponRoot;
+            sight.material = weaponMat;
+            
+        } else {
+            // === SHOTGUN or PISTOL (random) ===
+            
+            if (Math.random() > 0.5) {
+                // Shotgun
+                
+                // Barrel
+                const barrel = BABYLON.MeshBuilder.CreateCylinder(`barrel_${this.id}`, {
+                    diameter: 0.035, height: 0.5
+                }, this.scene);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.z = 0.3;
+                barrel.parent = weaponRoot;
+                barrel.material = weaponMat;
+                
+                // Pump
+                const pump = BABYLON.MeshBuilder.CreateCylinder(`pump_${this.id}`, {
+                    diameter: 0.045, height: 0.12
+                }, this.scene);
+                pump.rotation.x = Math.PI / 2;
+                pump.position.z = 0.15;
+                pump.parent = weaponRoot;
+                pump.material = weaponMat;
+                
+                // Stock
+                const stock = BABYLON.MeshBuilder.CreateBox(`stock_${this.id}`, {
+                    width: 0.05, height: 0.1, depth: 0.2
+                }, this.scene);
+                stock.position = new BABYLON.Vector3(0, -0.02, -0.1);
+                stock.parent = weaponRoot;
+                stock.material = woodMat;
+                
+            } else {
+                // Pistol
+                
+                // Slide
+                const slide = BABYLON.MeshBuilder.CreateBox(`slide_${this.id}`, {
+                    width: 0.025, height: 0.03, depth: 0.14
+                }, this.scene);
+                slide.position.z = 0.07;
+                slide.parent = weaponRoot;
+                slide.material = weaponMat;
+                
+                // Grip
+                const grip = BABYLON.MeshBuilder.CreateBox(`grip_${this.id}`, {
+                    width: 0.022, height: 0.08, depth: 0.06
+                }, this.scene);
+                grip.position = new BABYLON.Vector3(0, -0.04, -0.02);
+                grip.rotation.x = 0.2;
+                grip.parent = weaponRoot;
+                grip.material = weaponMat;
+                
+                // Trigger guard
+                const guard = BABYLON.MeshBuilder.CreateTorus(`guard_${this.id}`, {
+                    diameter: 0.03, thickness: 0.004, tessellation: 12
+                }, this.scene);
+                guard.position = new BABYLON.Vector3(0, -0.02, 0.03);
+                guard.rotation.y = Math.PI / 2;
+                guard.parent = weaponRoot;
+                guard.material = weaponMat;
+            }
+        }
+        
+        return weaponRoot;
     }
     
     // Walking animation
