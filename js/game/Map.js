@@ -162,14 +162,14 @@ class FavelaMap {
         
         // Multiple levels going up the hill
         for (let level = 0; level < 5; level++) {
-            const yOffset = level * 4;
-            const zOffset = -20 + level * 15;
+            const yOffset = level * 3; // Reduced height difference
+            const zOffset = -20 + level * 12;
             
             // Create flat platform for this level
             const platform = BABYLON.MeshBuilder.CreateBox(`platform_${level}`, {
                 width: this.width * 0.8,
                 height: 1,
-                depth: 20
+                depth: 18
             }, this.scene);
             
             platform.position = new BABYLON.Vector3(0, yOffset, zOffset);
@@ -179,29 +179,60 @@ class FavelaMap {
             
             terrainPieces.push(platform);
             
-            // Create ramp/stairs connecting levels
+            // Create ramps connecting levels - FIXED POSITIONS, GENTLE SLOPE
             if (level > 0) {
-                const ramp = BABYLON.MeshBuilder.CreateBox(`ramp_${level}`, {
-                    width: 4,
-                    height: 0.5,
-                    depth: 15
-                }, this.scene);
-                
-                ramp.position = new BABYLON.Vector3(
-                    Utils.random(-20, 20),
-                    yOffset - 2,
-                    zOffset - 10
+                // Left ramp
+                const rampLeft = this.createRamp(
+                    -15,                    // X position (left side)
+                    yOffset - 1.5,          // Y position
+                    zOffset - 8,            // Z position
+                    6,                      // Width
+                    12,                     // Length
+                    0.25                    // Slope angle (gentler)
                 );
-                ramp.rotation.x = -0.3;
-                ramp.material = this.materials.concrete;
-                ramp.checkCollisions = true;
-                ramp.isPickable = true;
+                terrainPieces.push(rampLeft);
                 
-                terrainPieces.push(ramp);
+                // Right ramp
+                const rampRight = this.createRamp(
+                    15,                     // X position (right side)
+                    yOffset - 1.5,          // Y position
+                    zOffset - 8,            // Z position
+                    6,                      // Width
+                    12,                     // Length
+                    0.25                    // Slope angle (gentler)
+                );
+                terrainPieces.push(rampRight);
+                
+                // Center ramp (main access)
+                const rampCenter = this.createRamp(
+                    0,                      // X position (center)
+                    yOffset - 1.5,          // Y position
+                    zOffset - 8,            // Z position
+                    8,                      // Width (wider)
+                    14,                     // Length (longer)
+                    0.2                     // Slope angle (very gentle)
+                );
+                terrainPieces.push(rampCenter);
             }
         }
         
         this.meshes.push(...terrainPieces);
+    }
+    
+    createRamp(x, y, z, width, length, slopeAngle) {
+        const ramp = BABYLON.MeshBuilder.CreateBox(`ramp_${x}_${z}`, {
+            width: width,
+            height: 0.5,
+            depth: length
+        }, this.scene);
+        
+        ramp.position = new BABYLON.Vector3(x, y, z);
+        ramp.rotation.x = -slopeAngle; // Negative to slope upward
+        ramp.material = this.materials.concrete;
+        ramp.checkCollisions = true;
+        ramp.isPickable = true;
+        
+        return ramp;
     }
     
     createBuildings() {
