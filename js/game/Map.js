@@ -270,19 +270,32 @@ class FavelaMap {
             this.createWall(x - width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
             this.createWall(x + width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
             
-            // Front wall with door opening on ground floor
+            // Front wall with BIG door opening on ground floor
             if (floor === 0) {
-                // Wall segments around door
-                this.createWall(x - width/4, baseY, z - depth/2, width/2 - 0.5, floorHeight, 0.2, wallMat, 0);
-                this.createWall(x + width/4, baseY, z - depth/2, width/2 - 0.5, floorHeight, 0.2, wallMat, 0);
-                // Top of door
-                this.createWall(x, baseY + 2.2, z - depth/2, 1, floorHeight - 2.2, 0.2, wallMat, 0);
+                const doorWidth = 2.5; // BIGGER DOOR!
+                const doorHeight = 2.8; // Taller door
+                
+                // Left wall segment (next to door)
+                this.createWall(x - width/2 + (width - doorWidth)/4, baseY, z - depth/2, (width - doorWidth)/2, floorHeight, 0.2, wallMat, 0);
+                // Right wall segment (next to door)
+                this.createWall(x + width/2 - (width - doorWidth)/4, baseY, z - depth/2, (width - doorWidth)/2, floorHeight, 0.2, wallMat, 0);
+                // Top of door (small piece above)
+                this.createWall(x, baseY + doorHeight, z - depth/2, doorWidth, floorHeight - doorHeight, 0.2, wallMat, 0);
             } else {
                 this.createWall(x, baseY, z - depth/2, width, floorHeight, 0.2, wallMat, 0);
             }
             
-            // Back wall
-            this.createWall(x, baseY, z + depth/2, width, floorHeight, 0.2, wallMat, 0);
+            // Back wall - ALSO with door on ground floor!
+            if (floor === 0) {
+                const doorWidth = 2.0; // Back door
+                const doorHeight = 2.5;
+                
+                this.createWall(x - width/2 + (width - doorWidth)/4, baseY, z + depth/2, (width - doorWidth)/2, floorHeight, 0.2, wallMat, 0);
+                this.createWall(x + width/2 - (width - doorWidth)/4, baseY, z + depth/2, (width - doorWidth)/2, floorHeight, 0.2, wallMat, 0);
+                this.createWall(x, baseY + doorHeight, z + depth/2, doorWidth, floorHeight - doorHeight, 0.2, wallMat, 0);
+            } else {
+                this.createWall(x, baseY, z + depth/2, width, floorHeight, 0.2, wallMat, 0);
+            }
             
             // Floor
             const floorMesh = BABYLON.MeshBuilder.CreateBox(`floor_${x}_${z}_${floor}`, {
@@ -510,36 +523,33 @@ class FavelaMap {
     }
     
     createSpawnPoints() {
-        // Police spawns at bottom of map (open area)
+        // Police spawns - FAR from buildings, in open area
         for (let i = 0; i < 10; i++) {
             this.spawnPoints.police.push(new BABYLON.Vector3(
-                Utils.random(-25, 25),
+                Utils.random(-20, 20),
                 2,
-                Utils.random(40, 48)
+                Utils.random(50, 60) // Far back, open area
             ));
         }
         
-        // Criminal spawns - OPEN AREAS in the favela (not inside houses!)
-        // Spawn in alleys and open spaces
-        const criminalSpawnZones = [
-            { x: 0, z: -15, radius: 5 },     // Central alley
-            { x: -25, z: -25, radius: 4 },   // Left side
-            { x: 25, z: -25, radius: 4 },    // Right side
-            { x: 0, z: -40, radius: 6 },     // Top of hill
-            { x: -15, z: -10, radius: 4 },   // Left alley
-            { x: 15, z: -10, radius: 4 },    // Right alley
+        // Criminal spawns - OPEN AREAS, far from buildings!
+        // These coordinates are in areas WITHOUT buildings
+        const safeSpawnPoints = [
+            { x: -45, z: -45 },  // Far corner
+            { x: 45, z: -45 },   // Far corner
+            { x: -45, z: 45 },   // Corner
+            { x: 45, z: 45 },    // Corner
+            { x: 0, z: -50 },    // Far back
+            { x: 0, z: 50 },     // Far front
+            { x: -50, z: 0 },    // Far left
+            { x: 50, z: 0 },     // Far right
+            { x: -35, z: -35 },  // Diagonal
+            { x: 35, z: 35 },    // Diagonal
         ];
         
         for (let i = 0; i < 10; i++) {
-            const zone = criminalSpawnZones[i % criminalSpawnZones.length];
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * zone.radius;
-            
-            const x = zone.x + Math.cos(angle) * dist;
-            const z = zone.z + Math.sin(angle) * dist;
-            const y = this.getGroundLevel(x, z) + 2;
-            
-            this.spawnPoints.criminal.push(new BABYLON.Vector3(x, y, z));
+            const spawn = safeSpawnPoints[i % safeSpawnPoints.length];
+            this.spawnPoints.criminal.push(new BABYLON.Vector3(spawn.x, 2, spawn.z));
         }
     }
     
