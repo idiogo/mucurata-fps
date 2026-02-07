@@ -29,6 +29,7 @@ class NPC {
         // State
         this.state = NPCState.PATROL;
         this.isDead = false;
+        this.isAggro = false; // Once aggro, NEVER stops hunting!
         this.lastFireTime = 0;
         this.lastSeenPlayerTime = 0;
         this.lastSeenPlayerPos = null;
@@ -513,6 +514,12 @@ class NPC {
     }
     
     updateAlert(deltaTime, player) {
+        // If aggro, go straight to combat - no stopping!
+        if (this.isAggro) {
+            this.state = NPCState.COMBAT;
+            return;
+        }
+        
         // Look around, move towards last known position
         if (this.lastSeenPlayerPos) {
             this.moveTowards(this.lastSeenPlayerPos, deltaTime, this.speed * 0.7);
@@ -523,7 +530,7 @@ class NPC {
             if (dist < 2) {
                 // Player not here, go back to patrol
                 setTimeout(() => {
-                    if (this.state === NPCState.ALERT) {
+                    if (this.state === NPCState.ALERT && !this.isAggro) {
                         this.state = NPCState.PATROL;
                         this.targetPosition = this.patrolPoints[this.currentPatrolIndex].clone();
                     }
@@ -540,6 +547,12 @@ class NPC {
     }
     
     updateChase(deltaTime, player) {
+        // If aggro, go to combat mode - relentless pursuit!
+        if (this.isAggro) {
+            this.state = NPCState.COMBAT;
+            return;
+        }
+        
         if (this.canSeePlayer(player)) {
             this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
@@ -567,6 +580,12 @@ class NPC {
     }
     
     updateCombat(deltaTime, player) {
+        // If aggro, ALWAYS know where player is (hunting instinct)
+        if (this.isAggro) {
+            this.lastSeenPlayerPos = player.collider.position.clone();
+            this.lastSeenPlayerTime = performance.now();
+        }
+        
         // Always look at player's last known position
         const targetPos = this.canSeePlayer(player) 
             ? player.collider.position 
@@ -577,7 +596,19 @@ class NPC {
         }
         
         if (!this.canSeePlayer(player)) {
-            // Lost sight - chase!
+            // Lost sight - but if aggro, keep hunting!
+            if (this.isAggro) {
+                // Hunt forever - run towards player
+                this.moveTowards(player.collider.position, deltaTime, this.speed);
+                
+                // Try to fire in player's direction
+                const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
+                if (distance < 60) {
+                    this.tryFireAtPlayer(player);
+                }
+                return;
+            }
+            
             const timeSinceSeen = performance.now() - this.lastSeenPlayerTime;
             
             if (timeSinceSeen > 3000) {
@@ -882,6 +913,7 @@ class NPC {
         
         // IMMEDIATELY enter combat and fight back!
         this.state = NPCState.COMBAT;
+        this.isAggro = true; // PERMANENTLY AGGRO - will hunt until death!
         
         // Try to find where the shot came from (player position)
         if (window.gameInstance && window.gameInstance.player) {
