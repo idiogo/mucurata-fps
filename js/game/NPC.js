@@ -21,10 +21,10 @@ class NPC {
         // Stats
         this.health = 100;
         this.maxHealth = 100;
-        this.damage = 15;
-        this.accuracy = 0.6;
-        this.reactionTime = 500; // ms to react to player
-        this.fireRate = 400; // ms between shots
+        this.damage = 12;
+        this.accuracy = 0.5;
+        this.reactionTime = 200; // ms to react to player (faster!)
+        this.fireRate = 350; // ms between shots (faster!)
         
         // State
         this.state = NPCState.PATROL;
@@ -567,51 +567,64 @@ class NPC {
     }
     
     updateCombat(deltaTime, player) {
+        // Always look at player's last known position
+        const targetPos = this.canSeePlayer(player) 
+            ? player.collider.position 
+            : this.lastSeenPlayerPos;
+            
+        if (targetPos) {
+            this.lookAt(targetPos);
+        }
+        
         if (!this.canSeePlayer(player)) {
-            // Lost sight
+            // Lost sight - chase!
             const timeSinceSeen = performance.now() - this.lastSeenPlayerTime;
             
-            if (timeSinceSeen > 2000) {
+            if (timeSinceSeen > 3000) {
                 this.state = NPCState.CHASE;
                 return;
             }
+            
+            // Move to last known position
+            if (this.lastSeenPlayerPos) {
+                this.moveTowards(this.lastSeenPlayerPos, deltaTime, this.speed);
+            }
         } else {
+            // Can see player - update position and FIGHT!
             this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
-        }
-        
-        // Look at player
-        this.lookAt(player.collider.position);
-        
-        const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
-        
-        // Move to optimal combat range
-        if (distance > 25) {
-            this.moveTowards(player.collider.position, deltaTime, this.speed * 0.8);
-        } else if (distance < 8) {
-            // Too close, back up a bit
-            const awayDir = this.mesh.position.subtract(player.collider.position).normalize();
-            const backupPos = this.mesh.position.add(awayDir.scale(5));
-            this.moveTowards(backupPos, deltaTime, this.speed * 0.5);
-        } else {
-            // Strafe randomly
-            if (Math.random() < 0.02) {
-                const strafeDir = Math.random() > 0.5 ? 1 : -1;
-                const strafeVec = new BABYLON.Vector3(
-                    Math.sin(this.mesh.rotation.y) * strafeDir,
-                    0,
-                    Math.cos(this.mesh.rotation.y) * strafeDir
-                );
-                this.targetPosition = this.mesh.position.add(strafeVec.scale(3));
+            
+            const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
+            
+            // Move and shoot
+            if (distance > 30) {
+                // Too far - advance while shooting
+                this.moveTowards(player.collider.position, deltaTime, this.speed * 0.8);
+            } else if (distance < 6) {
+                // Too close - back up while shooting
+                const awayDir = this.mesh.position.subtract(player.collider.position).normalize();
+                const backupPos = this.mesh.position.add(awayDir.scale(5));
+                this.moveTowards(backupPos, deltaTime, this.speed * 0.6);
+            } else {
+                // Good range - strafe and shoot
+                if (Math.random() < 0.03) {
+                    const strafeDir = Math.random() > 0.5 ? 1 : -1;
+                    const strafeVec = new BABYLON.Vector3(
+                        Math.sin(this.mesh.rotation.y) * strafeDir,
+                        0,
+                        Math.cos(this.mesh.rotation.y) * strafeDir
+                    );
+                    this.targetPosition = this.mesh.position.add(strafeVec.scale(4));
+                }
+                
+                if (this.targetPosition) {
+                    this.moveTowards(this.targetPosition, deltaTime, this.speed * 0.4);
+                }
             }
             
-            if (this.targetPosition) {
-                this.moveTowards(this.targetPosition, deltaTime, this.speed * 0.5);
-            }
+            // ALWAYS try to fire when in combat and can see player!
+            this.tryFireAtPlayer(player);
         }
-        
-        // Fire at player
-        this.tryFireAtPlayer(player);
     }
     
     moveTowards(target, deltaTime, speed) {
@@ -845,34 +858,19 @@ class NPC {
         
         this.health -= amount;
         
-        // Flash red when hit - all body parts
-        const originalColors = {};
-        Object.entries(this.bodyParts).forEach(([key, part]) => {
+        // Flash red when hit - all body parts (quick, non-blocking)
+        Object.values(this.bodyParts).forEach(part => {
             if (part && part.material && part.material.diffuseColor) {
-                originalColors[key] = part.material.diffuseColor.clone();
+                const original = part.material.diffuseColor.clone();
                 part.material.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
+                
+                setTimeout(() => {
+                    if (part && part.material) {
+                        part.material.diffuseColor = original;
+                    }
+                }, 80);
             }
         });
-        
-        // Flinch animation
-        if (this.bodyParts.torso) {
-            const originalRotX = this.bodyParts.torso.rotation.x;
-            this.bodyParts.torso.rotation.x = -0.1;
-            
-            setTimeout(() => {
-                if (this.bodyParts.torso) {
-                    this.bodyParts.torso.rotation.x = originalRotX;
-                }
-            }, 100);
-        }
-        
-        setTimeout(() => {
-            Object.entries(this.bodyParts).forEach(([key, part]) => {
-                if (part && part.material && originalColors[key]) {
-                    part.material.diffuseColor = originalColors[key];
-                }
-            });
-        }, 100);
         
         // Alert nearby NPCs
         this.alertNearbyNPCs();
@@ -882,9 +880,13 @@ class NPC {
             return true;
         }
         
-        // If not in combat, enter combat state
-        if (this.state !== NPCState.COMBAT) {
-            this.state = NPCState.ALERT;
+        // IMMEDIATELY enter combat and fight back!
+        this.state = NPCState.COMBAT;
+        
+        // Try to find where the shot came from (player position)
+        if (window.gameInstance && window.gameInstance.player) {
+            this.lastSeenPlayerPos = window.gameInstance.player.collider.position.clone();
+            this.lastSeenPlayerTime = performance.now();
         }
         
         return false;
