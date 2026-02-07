@@ -598,12 +598,12 @@ class NPC {
         if (!this.canSeePlayer(player)) {
             // Lost sight - but if aggro, keep hunting!
             if (this.isAggro) {
-                // Hunt forever - run towards player
-                this.moveTowards(player.collider.position, deltaTime, this.speed);
+                // Hunt forever - SPRINT towards player!
+                this.moveTowards(player.collider.position, deltaTime, this.speed * 1.5);
                 
                 // Try to fire in player's direction
                 const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
-                if (distance < 60) {
+                if (distance < 70) {
                     this.tryFireAtPlayer(player);
                 }
                 return;
@@ -627,10 +627,13 @@ class NPC {
             
             const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
             
+            // Aggro NPCs are more aggressive - chase harder!
+            const chaseSpeed = this.isAggro ? this.speed * 1.3 : this.speed;
+            
             // Move and shoot - fight from distance!
-            if (distance > 50) {
-                // Very far - advance while shooting
-                this.moveTowards(player.collider.position, deltaTime, this.speed * 0.8);
+            if (distance > 40) {
+                // Far away - RUN towards player while shooting
+                this.moveTowards(player.collider.position, deltaTime, chaseSpeed);
             } else if (distance < 8) {
                 // Too close - back up while shooting
                 const awayDir = this.mesh.position.subtract(player.collider.position).normalize();
