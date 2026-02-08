@@ -635,7 +635,7 @@ class FavelaMap {
     }
     
     createProps() {
-        // Only small barrels for cover - no big blocks!
+        // Barrels scattered around
         for (let i = 0; i < 10; i++) {
             const x = Utils.random(-45, 45);
             const z = Utils.random(-45, 45);
@@ -650,6 +650,35 @@ class FavelaMap {
             barrel.checkCollisions = true;
             barrel.isPickable = true;
             this.meshes.push(barrel);
+        }
+        
+        // Sandbag walls - OUTSIDE buildings only (edges of map)
+        const sandbagPositions = [
+            // Far edges - guaranteed outside buildings
+            { x: -55, z: 0 }, { x: 55, z: 0 },
+            { x: 0, z: -55 }, { x: 0, z: 55 },
+            { x: -50, z: -50 }, { x: 50, z: -50 },
+            { x: -50, z: 50 }, { x: 50, z: 50 },
+            // Mid positions at edges
+            { x: -55, z: -25 }, { x: -55, z: 25 },
+            { x: 55, z: -25 }, { x: 55, z: 25 },
+        ];
+        
+        for (let i = 0; i < sandbagPositions.length; i++) {
+            const pos = sandbagPositions[i];
+            
+            const sandbags = BABYLON.MeshBuilder.CreateBox(`sandbags_${i}`, {
+                width: Utils.random(2, 3),
+                height: 0.8,
+                depth: 0.6
+            }, this.scene);
+            
+            sandbags.position = new BABYLON.Vector3(pos.x, 0.4, pos.z);
+            sandbags.rotation.y = Utils.random(0, Math.PI);
+            sandbags.material = this.materials.ground;
+            sandbags.checkCollisions = true;
+            sandbags.isPickable = true;
+            this.meshes.push(sandbags);
         }
     }
     
