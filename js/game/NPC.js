@@ -944,22 +944,24 @@ class NPC {
             this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
             
-            // Look at player immediately
-            try {
-                if (isMelee) console.log('🎯 Looking at player...');
-                this.lookAt(player.collider.position);
-                if (isMelee) console.log('🎯 lookAt done');
-            } catch (e) {
-                console.error('🔴 lookAt error:', e);
+            // Look at player immediately (but not for melee - causes visual glitch at close range)
+            if (!isMelee) {
+                try {
+                    this.lookAt(player.collider.position);
+                } catch (e) {
+                    console.error('🔴 lookAt error:', e);
+                }
             }
             
-            // SHOOT BACK IMMEDIATELY - even from far away!
-            try {
-                if (isMelee) console.log('🎯 Firing back at player...');
-                this.fireBackAtPlayer(player);
-                if (isMelee) console.log('🎯 fireBack done');
-            } catch (e) {
-                console.error('🔴 fireBack error:', e);
+            // SHOOT BACK IMMEDIATELY - but not for melee (too close, causes visual glitch)
+            if (!isMelee) {
+                try {
+                    this.fireBackAtPlayer(player);
+                } catch (e) {
+                    console.error('🔴 fireBack error:', e);
+                }
+            } else {
+                console.log('🎯 Skipping fireBack (melee attack)');
             }
         }
         
