@@ -358,9 +358,25 @@ class FavelaMap {
         for (let floor = 0; floor < floors; floor++) {
             const baseY = groundY + floor * floorHeight;
             
-            // Walls
-            this.createWall(x - width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
-            this.createWall(x + width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
+            // Side walls - WITH DOORS on ground floor!
+            if (floor === 0) {
+                // Left wall with door
+                const sideDoorWidth = 2.0;
+                const sideDoorHeight = 2.5;
+                // Wall pieces around left door
+                this.createWall(x - width/2, baseY, z - depth/4, 0.2, floorHeight, depth/2 - sideDoorWidth/2, wallMat, 0);
+                this.createWall(x - width/2, baseY, z + depth/4, 0.2, floorHeight, depth/2 - sideDoorWidth/2, wallMat, 0);
+                this.createWall(x - width/2, baseY + sideDoorHeight, z, 0.2, floorHeight - sideDoorHeight, sideDoorWidth, wallMat, 0);
+                
+                // Right wall with door
+                this.createWall(x + width/2, baseY, z - depth/4, 0.2, floorHeight, depth/2 - sideDoorWidth/2, wallMat, 0);
+                this.createWall(x + width/2, baseY, z + depth/4, 0.2, floorHeight, depth/2 - sideDoorWidth/2, wallMat, 0);
+                this.createWall(x + width/2, baseY + sideDoorHeight, z, 0.2, floorHeight - sideDoorHeight, sideDoorWidth, wallMat, 0);
+            } else {
+                // Upper floors - solid walls
+                this.createWall(x - width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
+                this.createWall(x + width/2, baseY, z, 0.2, floorHeight, depth, wallMat, 0);
+            }
             
             // Front wall with BIG door opening on ground floor
             if (floor === 0) {
