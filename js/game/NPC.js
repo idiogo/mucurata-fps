@@ -882,13 +882,16 @@ class NPC {
         }, 60);
     }
     
-    takeDamage(amount, hitPart = null) {
+    takeDamage(amount, hitPart = null, isMelee = false) {
         if (this.isDead) return false;
         
         // Headshot bonus damage
         if (hitPart && hitPart.name && hitPart.name.includes('head')) {
             amount *= 2.5;
         }
+        
+        // Store melee flag for fireBackAtPlayer
+        this._lastHitWasMelee = isMelee;
         
         this.health -= amount;
         
@@ -963,8 +966,10 @@ class NPC {
             player.takeDamage(damage);
         }
         
-        // Visual/audio feedback
-        this.createMuzzleFlash();
+        // Visual/audio feedback (skip flash if player is very close - melee range)
+        if (distance > 4) {
+            this.createMuzzleFlash();
+        }
         Utils.playSound(this.scene, 'shoot');
         
         // Reset fire time so they can keep shooting

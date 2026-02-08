@@ -404,13 +404,16 @@ class Player {
         const hits = this.currentWeapon.fire(this.scene);
         
         if (hits && hits.length > 0) {
+            // Check if this is a melee attack (knife)
+            const isMelee = this.currentWeapon && this.currentWeapon.type === WeaponTypes.KNIFE;
+            
             // Process hits
             for (const hit of hits) {
                 if (hit.mesh && hit.mesh.metadata && hit.mesh.metadata.isNPC) {
                     // Damage NPC
                     const npc = hit.mesh.metadata.npcInstance;
                     if (npc) {
-                        const killed = npc.takeDamage(hit.damage);
+                        const killed = npc.takeDamage(hit.damage, null, isMelee);
                         this.showHitmarker(killed);
                         
                         if (killed) {
