@@ -682,6 +682,6 @@ body {
 }
 
 /* Hide regular crosshair when scoped */
-.game-hud.scoped .crosshair {
+#hud.scoped .crosshair {
     display: none;
 }

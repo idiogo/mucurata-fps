@@ -517,9 +517,11 @@ class Player {
             
             // Show/hide sniper scope overlay
             const scopeEl = document.getElementById('sniper-scope');
-            const hudEl = document.getElementById('game-hud');
-            if (scopeEl && hudEl) {
+            const hudEl = document.getElementById('hud');
+            if (scopeEl) {
                 scopeEl.style.display = isAiming ? 'block' : 'none';
+            }
+            if (hudEl) {
                 hudEl.classList.toggle('scoped', isAiming);
             }
             
