@@ -302,28 +302,53 @@ class Weapon {
     
     createKnifeMesh(parent) {
         const bladeMat = new BABYLON.StandardMaterial("bladeMat", this.scene);
-        bladeMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.75);
-        bladeMat.specularColor = new BABYLON.Color3(1, 1, 1);
+        bladeMat.diffuseColor = new BABYLON.Color3(0.75, 0.75, 0.8);
+        bladeMat.specularColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+        bladeMat.specularPower = 64;
         
         const handleMat = new BABYLON.StandardMaterial("handleMat", this.scene);
-        handleMat.diffuseColor = new BABYLON.Color3(0.2, 0.15, 0.1);
+        handleMat.diffuseColor = new BABYLON.Color3(0.15, 0.1, 0.05);
         
-        // Blade
+        // Blade - tactical knife style (larger, visible)
         const blade = BABYLON.MeshBuilder.CreateBox("blade", {
-            width: 0.01, height: 0.03, depth: 0.2
+            width: 0.008, height: 0.04, depth: 0.18
         }, this.scene);
-        blade.position = new BABYLON.Vector3(0.35, -0.2, 0.2);
+        blade.position = new BABYLON.Vector3(0.32, -0.22, 0.24);
+        blade.rotation.x = -0.1; // Slight angle like holding a knife
         blade.material = bladeMat;
         blade.parent = parent;
+        blade.isPickable = false;
+        
+        // Blade edge (darker line on the edge)
+        const edge = BABYLON.MeshBuilder.CreateBox("edge", {
+            width: 0.002, height: 0.035, depth: 0.16
+        }, this.scene);
+        edge.position = new BABYLON.Vector3(0.32, -0.225, 0.25);
+        edge.rotation.x = -0.1;
+        const edgeMat = new BABYLON.StandardMaterial("edgeMat", this.scene);
+        edgeMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.45);
+        edge.material = edgeMat;
+        edge.parent = parent;
+        edge.isPickable = false;
         
         // Handle
         const handle = BABYLON.MeshBuilder.CreateCylinder("handle", {
-            diameter: 0.025, height: 0.12
+            diameter: 0.028, height: 0.11
         }, this.scene);
         handle.rotation.x = Math.PI / 2;
-        handle.position = new BABYLON.Vector3(0.35, -0.2, 0.05);
+        handle.position = new BABYLON.Vector3(0.32, -0.22, 0.08);
         handle.material = handleMat;
         handle.parent = parent;
+        handle.isPickable = false;
+        
+        // Guard (between blade and handle)
+        const guard = BABYLON.MeshBuilder.CreateBox("guard", {
+            width: 0.04, height: 0.015, depth: 0.015
+        }, this.scene);
+        guard.position = new BABYLON.Vector3(0.32, -0.22, 0.14);
+        guard.material = handleMat;
+        guard.parent = parent;
+        guard.isPickable = false;
     }
     
     createMuzzleFlash() {
