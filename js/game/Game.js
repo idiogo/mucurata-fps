@@ -17,7 +17,7 @@ class Game {
         this.team = null;
         this.primaryWeapon = null;
         this.difficulty = 'normal';
-        this.enemyCount = 8;
+        this.enemyCount = 10;
         
         // Game objects
         this.player = null;
