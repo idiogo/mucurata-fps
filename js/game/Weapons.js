@@ -446,39 +446,50 @@ class Weapon {
     }
     
     meleeAttack() {
-        const origin = this.camera.position.clone();
-        const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
-        const ray = new BABYLON.Ray(origin, direction, this.data.range);
-        
-        const hit = this.scene.pickWithRay(ray, (mesh) => {
-            return mesh.isPickable && mesh.metadata && mesh.metadata.isNPC;
-        });
-        
-        if (hit && hit.hit) {
-            const hitMesh = hit.pickedMesh;
-            const npcInstance = hitMesh.metadata.npcInstance;
+        try {
+            const origin = this.camera.position.clone();
+            const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
+            const ray = new BABYLON.Ray(origin, direction, this.data.range);
             
-            // Check if backstab - use the NPC's main mesh for direction
-            let isBackstab = false;
-            if (npcInstance && npcInstance.mesh) {
-                const npcMesh = npcInstance.mesh;
-                const toPlayer = this.camera.position.subtract(npcMesh.position).normalize();
-                // NPC forward is based on its Y rotation
-                const npcAngle = npcMesh.rotation.y;
-                const npcForward = new BABYLON.Vector3(Math.sin(npcAngle), 0, Math.cos(npcAngle));
-                const dot = BABYLON.Vector3.Dot(toPlayer, npcForward);
-                isBackstab = dot > 0.5; // Behind the enemy
+            const hit = this.scene.pickWithRay(ray, (mesh) => {
+                return mesh.isPickable && mesh.metadata && mesh.metadata.isNPC;
+            });
+            
+            if (hit && hit.hit) {
+                const hitMesh = hit.pickedMesh;
+                const npcInstance = hitMesh.metadata ? hitMesh.metadata.npcInstance : null;
+                
+                // Check if backstab - use the NPC's main mesh for direction
+                let isBackstab = false;
+                if (npcInstance && npcInstance.mesh) {
+                    try {
+                        const npcMesh = npcInstance.mesh;
+                        const toPlayer = this.camera.position.subtract(npcMesh.position).normalize();
+                        // NPC forward is based on its Y rotation
+                        const npcAngle = npcMesh.rotation ? npcMesh.rotation.y : 0;
+                        const npcForward = new BABYLON.Vector3(Math.sin(npcAngle), 0, Math.cos(npcAngle));
+                        const dot = BABYLON.Vector3.Dot(toPlayer, npcForward);
+                        isBackstab = dot > 0.5; // Behind the enemy
+                    } catch (e) {
+                        console.warn('Backstab check error:', e);
+                    }
+                }
+                
+                const damage = isBackstab ? 200 : this.data.damage; // Insta-kill from behind
+                
+                // Play knife hit sound
+                Utils.playSound(this.scene, 'hit');
+                
+                return [{
+                    mesh: hitMesh,
+                    point: hit.pickedPoint,
+                    distance: hit.distance,
+                    damage: damage,
+                    isBackstab: isBackstab
+                }];
             }
-            
-            const damage = isBackstab ? 200 : this.data.damage; // Insta-kill from behind
-            
-            return [{
-                mesh: hitMesh,
-                point: hit.pickedPoint,
-                distance: hit.distance,
-                damage: damage,
-                isBackstab: isBackstab
-            }];
+        } catch (e) {
+            console.error('Melee attack error:', e);
         }
         
         return [];

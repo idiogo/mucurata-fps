@@ -936,10 +936,12 @@ class NPC {
     
     // Special method to fire back when hit - ignores distance/visibility
     fireBackAtPlayer(player) {
-        if (this.isDead || player.isDead) return;
+        if (this.isDead || !player || player.isDead) return;
+        if (!this.mesh || !player.collider) return;
         
-        // Calculate distance for accuracy falloff
-        const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
+        try {
+            // Calculate distance for accuracy falloff
+            const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
         
         // Accuracy decreases with distance but still has a chance
         let accuracy = this.accuracy;
@@ -967,6 +969,9 @@ class NPC {
         
         // Reset fire time so they can keep shooting
         this.lastFireTime = performance.now();
+        } catch (e) {
+            console.error('fireBackAtPlayer error:', e);
+        }
     }
     
     alertNearbyNPCs() {
