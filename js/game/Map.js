@@ -338,9 +338,9 @@ class FavelaMap {
             for (let i = 0; i < zone.count; i++) {
                 const x = zone.x + Utils.random(-10, 10);
                 const z = zone.z + Utils.random(-8, 8);
-                const floors = 1; // Only 1 floor - simpler, no floating stairs!
-                const width = Utils.random(4, 8);
-                const depth = Utils.random(4, 6);
+                const floors = 2; // 2 floors with internal stairs!
+                const width = Utils.random(5, 9);
+                const depth = Utils.random(5, 7);
                 
                 this.createBuilding(x, z, width, depth, floors);
             }
@@ -389,18 +389,53 @@ class FavelaMap {
                 this.createWall(x, baseY, z + depth/2, width, floorHeight, 0.2, wallMat, 0);
             }
             
-            // Floor
-            const floorMesh = BABYLON.MeshBuilder.CreateBox(`floor_${x}_${z}_${floor}`, {
-                width: width,
-                height: 0.2,
-                depth: depth
-            }, this.scene);
-            floorMesh.position = new BABYLON.Vector3(x, baseY, z);
-            floorMesh.material = this.materials.concrete;
-            floorMesh.checkCollisions = true;
-            floorMesh.isPickable = true;
-            
-            this.meshes.push(floorMesh);
+            // Floor (with stair hole on upper floors)
+            if (floor === 0 || floors === 1) {
+                // Ground floor - solid
+                const floorMesh = BABYLON.MeshBuilder.CreateBox(`floor_${x}_${z}_${floor}`, {
+                    width: width,
+                    height: 0.2,
+                    depth: depth
+                }, this.scene);
+                floorMesh.position = new BABYLON.Vector3(x, baseY, z);
+                floorMesh.material = this.materials.concrete;
+                floorMesh.checkCollisions = true;
+                floorMesh.isPickable = true;
+                this.meshes.push(floorMesh);
+            } else {
+                // Upper floor - with hole for stairs (2 pieces)
+                const holeWidth = 1.5;
+                const holeDepth = 4.5;
+                
+                // Main floor piece (most of the floor)
+                const mainFloor = BABYLON.MeshBuilder.CreateBox(`floor_${x}_${z}_${floor}_main`, {
+                    width: width - holeWidth - 0.5,
+                    height: 0.2,
+                    depth: depth
+                }, this.scene);
+                mainFloor.position = new BABYLON.Vector3(x - holeWidth/2, baseY, z);
+                mainFloor.material = this.materials.concrete;
+                mainFloor.checkCollisions = true;
+                mainFloor.isPickable = true;
+                this.meshes.push(mainFloor);
+                
+                // Side piece next to hole
+                const sideFloor = BABYLON.MeshBuilder.CreateBox(`floor_${x}_${z}_${floor}_side`, {
+                    width: holeWidth + 0.3,
+                    height: 0.2,
+                    depth: depth - holeDepth
+                }, this.scene);
+                sideFloor.position = new BABYLON.Vector3(x + width/2 - holeWidth/2 - 0.2, baseY, z - depth/2 + (depth - holeDepth)/2);
+                sideFloor.material = this.materials.concrete;
+                sideFloor.checkCollisions = true;
+                sideFloor.isPickable = true;
+                this.meshes.push(sideFloor);
+            }
+        }
+        
+        // INTERNAL STAIRS (inside the house)
+        if (floors > 1) {
+            this.createInternalStairs(x, z, groundY, floors, width, depth);
         }
         
         // Roof (laje)
@@ -429,8 +464,46 @@ class FavelaMap {
             metalRoof.material = roofMat;
             this.meshes.push(metalRoof);
         }
+    }
+    
+    createInternalStairs(x, z, groundY, floors, buildingWidth, buildingDepth) {
+        const floorHeight = 3;
+        const stairWidth = 1.2;
+        const numSteps = 10;
+        const stepHeight = floorHeight / numSteps;
+        const stepDepth = 0.4;
         
-        // External stairs removed - buildings are only 1 floor now for simplicity
+        // Place stairs in corner of building
+        const stairX = x + buildingWidth/2 - stairWidth/2 - 0.3;
+        const stairZ = z + buildingDepth/2 - 2;
+        
+        for (let floor = 0; floor < floors - 1; floor++) {
+            const baseY = groundY + floor * floorHeight;
+            
+            // Create steps
+            for (let step = 0; step < numSteps; step++) {
+                const stepMesh = BABYLON.MeshBuilder.CreateBox(`intStep_${x}_${z}_${floor}_${step}`, {
+                    width: stairWidth,
+                    height: stepHeight,
+                    depth: stepDepth
+                }, this.scene);
+                
+                stepMesh.position = new BABYLON.Vector3(
+                    stairX,
+                    baseY + step * stepHeight + stepHeight/2,
+                    stairZ - step * stepDepth
+                );
+                
+                stepMesh.material = this.materials.concrete;
+                stepMesh.checkCollisions = true;
+                stepMesh.isPickable = true;
+                
+                this.meshes.push(stepMesh);
+            }
+            
+            // Hole in floor above for stairs (remove part of ceiling)
+            // We'll make the floor have a gap by not creating floor there
+        }
     }
     
     createWall(x, y, z, width, height, depth, material, rotation) {
