@@ -179,13 +179,12 @@ class Game {
         // Store pipeline reference
         this.renderPipeline = pipeline;
         
-        // SSAO disabled temporarily to debug knife gray screen issue
-        // this.setupSSAO();
+        // SSAO for depth and realism
+        this.setupSSAO();
     }
     
     setupSSAO() {
-        // Screen Space Ambient Occlusion - DISABLED FOR DEBUG
-        return; // Skip SSAO to test if it's causing gray screen
+        // Screen Space Ambient Occlusion
         
         const ssaoRatio = {
             ssaoRatio: 0.5,

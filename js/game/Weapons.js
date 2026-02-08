@@ -75,7 +75,8 @@ const WeaponData = {
         backstabMultiplier: 2,
         range: 2.5,
         fireRate: 500,
-        moveSpeed: 1.1
+        moveSpeed: 1.1,
+        recoil: 0 // IMPORTANT: must be 0, not undefined, or camera breaks!
     },
     [WeaponTypes.GRENADE]: {
         name: 'Granada',
