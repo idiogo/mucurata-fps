@@ -71,26 +71,118 @@ class FavelaMap {
         groundMat.bumpTexture = this.createNoiseTexture("groundBump", 0.15);
         this.materials.ground = groundMat;
         
-        // Painted walls (various colors) - more muted CS-style
-        const colors = [
-            new BABYLON.Color3(0.65, 0.55, 0.42), // Tan
-            new BABYLON.Color3(0.72, 0.68, 0.58), // Cream
-            new BABYLON.Color3(0.52, 0.58, 0.65), // Muted blue
-            new BABYLON.Color3(0.68, 0.55, 0.55), // Dusty pink
-            new BABYLON.Color3(0.58, 0.65, 0.52), // Sage green
-            new BABYLON.Color3(0.75, 0.72, 0.65), // Beige
-            new BABYLON.Color3(0.6, 0.58, 0.55),  // Warm gray
-            new BABYLON.Color3(0.7, 0.62, 0.52),  // Sandstone
+        // Exposed brick walls - FAVELA STYLE! (no plaster/reboco)
+        this.materials.painted = [];
+        
+        // Different brick colors (exposed, weathered)
+        const brickColors = [
+            new BABYLON.Color3(0.6, 0.35, 0.25),   // Red brick
+            new BABYLON.Color3(0.55, 0.38, 0.28),  // Orange brick
+            new BABYLON.Color3(0.5, 0.32, 0.22),   // Dark red brick
+            new BABYLON.Color3(0.58, 0.4, 0.3),    // Light brick
+            new BABYLON.Color3(0.52, 0.35, 0.25),  // Weathered brick
+            new BABYLON.Color3(0.48, 0.3, 0.2),    // Old brick
         ];
         
-        this.materials.painted = colors.map((color, i) => {
-            const mat = new BABYLON.PBRMaterial(`paintedMat${i}`, this.scene);
-            mat.albedoColor = color;
-            mat.roughness = 0.82;
+        for (let i = 0; i < brickColors.length; i++) {
+            const mat = new BABYLON.PBRMaterial(`brickWall${i}`, this.scene);
+            mat.albedoColor = brickColors[i];
+            mat.roughness = 0.95;
             mat.metallic = 0;
-            mat.bumpTexture = this.createNoiseTexture(`paintBump${i}`, 0.08);
-            return mat;
-        });
+            mat.albedoTexture = this.createBrickTexture(`brickTex${i}`, brickColors[i]);
+            mat.bumpTexture = this.createBrickBumpTexture(`brickBump${i}`);
+            this.materials.painted.push(mat);
+        }
+    }
+    
+    createBrickTexture(name, baseColor) {
+        // Create procedural brick texture
+        const texture = new BABYLON.DynamicTexture(name, 256, this.scene);
+        const ctx = texture.getContext();
+        
+        const brickWidth = 32;
+        const brickHeight = 16;
+        const mortarSize = 2;
+        
+        // Mortar color (gray cement)
+        ctx.fillStyle = '#555550';
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // Draw bricks
+        for (let row = 0; row < 16; row++) {
+            const offset = (row % 2) * (brickWidth / 2); // Stagger rows
+            
+            for (let col = -1; col < 9; col++) {
+                const x = col * brickWidth + offset;
+                const y = row * brickHeight;
+                
+                // Slight color variation per brick
+                const variation = 0.9 + Math.random() * 0.2;
+                const r = Math.floor(baseColor.r * 255 * variation);
+                const g = Math.floor(baseColor.g * 255 * variation);
+                const b = Math.floor(baseColor.b * 255 * variation);
+                
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(
+                    x + mortarSize, 
+                    y + mortarSize, 
+                    brickWidth - mortarSize * 2, 
+                    brickHeight - mortarSize * 2
+                );
+                
+                // Add some dirt/weathering spots
+                if (Math.random() > 0.7) {
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.2})`;
+                    ctx.fillRect(
+                        x + mortarSize + Math.random() * 20,
+                        y + mortarSize + Math.random() * 8,
+                        Math.random() * 10 + 2,
+                        Math.random() * 5 + 2
+                    );
+                }
+            }
+        }
+        
+        texture.update();
+        return texture;
+    }
+    
+    createBrickBumpTexture(name) {
+        // Create bump map for brick depth
+        const texture = new BABYLON.DynamicTexture(name, 256, this.scene);
+        const ctx = texture.getContext();
+        
+        const brickWidth = 32;
+        const brickHeight = 16;
+        const mortarSize = 2;
+        
+        // Base (mortar is lower)
+        ctx.fillStyle = '#404040';
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // Bricks are raised
+        for (let row = 0; row < 16; row++) {
+            const offset = (row % 2) * (brickWidth / 2);
+            
+            for (let col = -1; col < 9; col++) {
+                const x = col * brickWidth + offset;
+                const y = row * brickHeight;
+                
+                // Brick surface with slight variation
+                const height = 180 + Math.random() * 40;
+                ctx.fillStyle = `rgb(${height},${height},${height})`;
+                ctx.fillRect(
+                    x + mortarSize, 
+                    y + mortarSize, 
+                    brickWidth - mortarSize * 2, 
+                    brickHeight - mortarSize * 2
+                );
+            }
+        }
+        
+        texture.update();
+        texture.level = 0.3;
+        return texture;
     }
     
     createNoiseTexture(name, intensity) {
