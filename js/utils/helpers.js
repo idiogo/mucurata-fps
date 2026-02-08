@@ -237,52 +237,208 @@ const Utils = {
     },
 
     /**
-     * Play sound with optional 3D positioning
+     * Play sound with optional 3D positioning - REALISTIC SOUNDS
      */
     playSound(scene, name, position = null, volume = 1) {
-        // Sound would be loaded from assets in production
-        // For now, we use Web Audio API for simple sounds
         try {
             const audioContext = BABYLON.Engine.audioEngine?.audioContext;
             if (!audioContext) return;
             
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            const now = audioContext.currentTime;
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            gainNode.gain.value = volume * 0.1;
-            
-            // Different sounds for different actions
             switch(name) {
                 case 'shoot':
-                    oscillator.frequency.value = 150;
-                    oscillator.type = 'square';
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    this.playGunshotSound(audioContext, now, volume);
                     break;
                 case 'reload':
-                    oscillator.frequency.value = 400;
-                    oscillator.type = 'sine';
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    this.playReloadSound(audioContext, now, volume);
                     break;
                 case 'hit':
-                    oscillator.frequency.value = 800;
-                    oscillator.type = 'sine';
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+                    this.playHitSound(audioContext, now, volume);
                     break;
                 case 'explosion':
-                    oscillator.frequency.value = 60;
-                    oscillator.type = 'sawtooth';
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    this.playExplosionSound(audioContext, now, volume);
                     break;
             }
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
         } catch (e) {
             // Audio not supported or blocked
         }
+    },
+    
+    /**
+     * Realistic gunshot sound - layered noise + low thump
+     */
+    playGunshotSound(ctx, now, volume) {
+        // Layer 1: Sharp crack (white noise burst)
+        const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
+        }
+        
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.value = 1000;
+        
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.4 * volume, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        
+        noiseSource.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseSource.start(now);
+        
+        // Layer 2: Low frequency thump
+        const thump = ctx.createOscillator();
+        thump.type = 'sine';
+        thump.frequency.setValueAtTime(150, now);
+        thump.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+        
+        const thumpGain = ctx.createGain();
+        thumpGain.gain.setValueAtTime(0.6 * volume, now);
+        thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        
+        thump.connect(thumpGain);
+        thumpGain.connect(ctx.destination);
+        thump.start(now);
+        thump.stop(now + 0.2);
+        
+        // Layer 3: Mechanical click
+        const click = ctx.createOscillator();
+        click.type = 'square';
+        click.frequency.value = 2000;
+        
+        const clickGain = ctx.createGain();
+        clickGain.gain.setValueAtTime(0.1 * volume, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        
+        click.connect(clickGain);
+        clickGain.connect(ctx.destination);
+        click.start(now);
+        click.stop(now + 0.03);
+    },
+    
+    /**
+     * Reload sound - metallic clicks
+     */
+    playReloadSound(ctx, now, volume) {
+        // Magazine release click
+        const click1 = ctx.createOscillator();
+        click1.type = 'square';
+        click1.frequency.value = 3000;
+        
+        const click1Gain = ctx.createGain();
+        click1Gain.gain.setValueAtTime(0.15 * volume, now);
+        click1Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        
+        click1.connect(click1Gain);
+        click1Gain.connect(ctx.destination);
+        click1.start(now);
+        click1.stop(now + 0.05);
+        
+        // Magazine insert
+        const click2 = ctx.createOscillator();
+        click2.type = 'triangle';
+        click2.frequency.value = 800;
+        
+        const click2Gain = ctx.createGain();
+        click2Gain.gain.setValueAtTime(0.2 * volume, now + 0.15);
+        click2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        
+        click2.connect(click2Gain);
+        click2Gain.connect(ctx.destination);
+        click2.start(now + 0.15);
+        click2.stop(now + 0.25);
+        
+        // Slide rack
+        const slide = ctx.createOscillator();
+        slide.type = 'sawtooth';
+        slide.frequency.setValueAtTime(200, now + 0.3);
+        slide.frequency.linearRampToValueAtTime(400, now + 0.35);
+        
+        const slideGain = ctx.createGain();
+        slideGain.gain.setValueAtTime(0.1 * volume, now + 0.3);
+        slideGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        
+        slide.connect(slideGain);
+        slideGain.connect(ctx.destination);
+        slide.start(now + 0.3);
+        slide.stop(now + 0.45);
+    },
+    
+    /**
+     * Hit marker sound
+     */
+    playHitSound(ctx, now, volume) {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+        
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.15 * volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    },
+    
+    /**
+     * Explosion sound - massive low frequency boom
+     */
+    playExplosionSound(ctx, now, volume) {
+        // Layer 1: Deep boom
+        const boom = ctx.createOscillator();
+        boom.type = 'sine';
+        boom.frequency.setValueAtTime(80, now);
+        boom.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+        
+        const boomGain = ctx.createGain();
+        boomGain.gain.setValueAtTime(0.8 * volume, now);
+        boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        
+        boom.connect(boomGain);
+        boomGain.connect(ctx.destination);
+        boom.start(now);
+        boom.stop(now + 1);
+        
+        // Layer 2: Noise crackle
+        const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.15));
+        }
+        
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.5 * volume, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        
+        noiseSource.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseSource.start(now);
+        
+        // Layer 3: Mid frequency rumble
+        const rumble = ctx.createOscillator();
+        rumble.type = 'sawtooth';
+        rumble.frequency.value = 100;
+        
+        const rumbleGain = ctx.createGain();
+        rumbleGain.gain.setValueAtTime(0.3 * volume, now);
+        rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        
+        rumble.connect(rumbleGain);
+        rumbleGain.connect(ctx.destination);
+        rumble.start(now);
+        rumble.stop(now + 0.7);
     }
 };
 

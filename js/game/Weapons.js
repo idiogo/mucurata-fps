@@ -57,16 +57,16 @@ const WeaponData = {
     },
     [WeaponTypes.PISTOL]: {
         name: 'Pistola',
-        damage: 25,
+        damage: 38, // Buffed! Mais potente
         pellets: 1,
-        spread: 0.02,
-        range: 40,
-        fireRate: 200, // Semi-auto
-        reloadTime: 1500,
-        magSize: 12,
-        reserveAmmo: 48,
+        spread: 0.015, // Mais precisa
+        range: 50, // Maior alcance
+        fireRate: 180, // Semi-auto, um pouco mais rápido
+        reloadTime: 1400,
+        magSize: 15, // Mais balas
+        reserveAmmo: 60,
         automatic: false,
-        recoil: 0.05,
+        recoil: 0.06,
         moveSpeed: 1.0
     },
     [WeaponTypes.KNIFE]: {

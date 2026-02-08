@@ -92,6 +92,36 @@ class Player {
         });
     }
     
+    checkWallCollision(movement) {
+        if (movement.length() < 0.001) return true;
+        
+        const direction = movement.normalize();
+        const rayStart = this.collider.position.clone();
+        rayStart.y = this.collider.position.y + 0.5; // Check at mid-height
+        
+        // Cast ray in movement direction
+        const ray = new BABYLON.Ray(rayStart, direction, 0.6); // 0.6 = player radius + margin
+        
+        const hit = this.scene.pickWithRay(ray, (mesh) => {
+            return mesh !== this.collider && 
+                   mesh.checkCollisions && 
+                   mesh.isPickable &&
+                   !mesh.name.includes('npc_') &&
+                   !mesh.name.includes('collider_') &&
+                   !mesh.name.includes('head_') &&
+                   !mesh.name.includes('weapon') &&
+                   mesh.name !== 'ground' &&
+                   mesh.name !== 'skybox';
+        });
+        
+        // If hit something close, block movement
+        if (hit && hit.hit && hit.distance < 0.5) {
+            return false;
+        }
+        
+        return true;
+    }
+    
     createCollider() {
         // Create collider for player (no physics - use Babylon collision system)
         this.collider = BABYLON.MeshBuilder.CreateBox("playerCollider", {
@@ -103,11 +133,16 @@ class Player {
         this.collider.isVisible = false;
         this.collider.isPickable = false;
         
-        // Use Babylon's built-in collision system instead of physics
+        // Use Babylon's built-in collision system
         this.collider.checkCollisions = true;
+        
+        // Ellipsoid defines collision shape (half-extents)
         this.collider.ellipsoid = new BABYLON.Vector3(0.4, 0.9, 0.4);
         
-        console.log('Player collider created');
+        // Offset so ellipsoid center is at player feet level
+        this.collider.ellipsoidOffset = new BABYLON.Vector3(0, 0.9, 0);
+        
+        console.log('Player collider created with wall collision');
     }
     
     setupWeapons(primaryWeapon) {
@@ -130,6 +165,26 @@ class Player {
         // Mouse events
         window.addEventListener('mousedown', (e) => this.onMouseDown(e));
         window.addEventListener('mouseup', (e) => this.onMouseUp(e));
+        window.addEventListener('wheel', (e) => this.onWheel(e));
+    }
+    
+    onWheel(e) {
+        if (this.isDead) return;
+        if (!document.pointerLockElement) return;
+        
+        // Scroll down = next weapon, scroll up = previous weapon
+        const maxSlot = Object.keys(this.weapons).length;
+        let newSlot = this.currentWeaponSlot;
+        
+        if (e.deltaY > 0) {
+            // Scroll down - next weapon
+            newSlot = newSlot >= maxSlot ? 1 : newSlot + 1;
+        } else if (e.deltaY < 0) {
+            // Scroll up - previous weapon
+            newSlot = newSlot <= 1 ? maxSlot : newSlot - 1;
+        }
+        
+        this.switchWeapon(newSlot);
     }
     
     onKeyDown(e) {
@@ -300,14 +355,26 @@ class Player {
             }
         }
         
-        // Apply movement directly (no physics)
+        // Apply movement WITH COLLISION DETECTION
         const movement = new BABYLON.Vector3(
             this.velocity.x * deltaTime,
             this.velocity.y * deltaTime,
             this.velocity.z * deltaTime
         );
         
-        this.collider.position.addInPlace(movement);
+        // Check wall collisions with raycasting before moving
+        const canMoveX = this.checkWallCollision(new BABYLON.Vector3(movement.x, 0, 0));
+        const canMoveZ = this.checkWallCollision(new BABYLON.Vector3(0, 0, movement.z));
+        
+        // Build final movement vector
+        const finalMovement = new BABYLON.Vector3(
+            canMoveX ? movement.x : 0,
+            movement.y,
+            canMoveZ ? movement.z : 0
+        );
+        
+        // Use Babylon's moveWithCollisions for additional safety
+        this.collider.moveWithCollisions(finalMovement);
         
         // Clamp to ground level minimum
         if (this.collider.position.y < 1) {
