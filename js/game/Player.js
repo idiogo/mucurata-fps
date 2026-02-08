@@ -511,9 +511,22 @@ class Player {
     }
     
     aim(isAiming) {
-        // Implement scope/ADS if needed
+        // Implement scope/ADS for sniper
         if (this.currentWeapon && this.currentWeapon.data.scopeZoom) {
             this.camera.fov = isAiming ? 1.2 / this.currentWeapon.data.scopeZoom : 1.2;
+            
+            // Show/hide sniper scope overlay
+            const scopeEl = document.getElementById('sniper-scope');
+            const hudEl = document.getElementById('game-hud');
+            if (scopeEl && hudEl) {
+                scopeEl.style.display = isAiming ? 'block' : 'none';
+                hudEl.classList.toggle('scoped', isAiming);
+            }
+            
+            // Hide weapon when scoped
+            if (this.currentWeapon.mesh) {
+                this.currentWeapon.mesh.setEnabled(!isAiming);
+            }
         }
     }
     

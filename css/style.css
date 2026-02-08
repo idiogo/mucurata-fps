@@ -584,3 +584,104 @@ body {
         flex-wrap: wrap;
     }
 }
+
+/* Sniper Scope Overlay */
+.sniper-scope {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.scope-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        circle at center,
+        transparent 0%,
+        transparent 28%,
+        rgba(0, 0, 0, 0.3) 29%,
+        rgba(0, 0, 0, 0.95) 32%,
+        #000 33%
+    );
+}
+
+.scope-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60vh;
+    height: 60vh;
+}
+
+.scope-line {
+    position: absolute;
+    background: #000;
+}
+
+.scope-line.vertical {
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.scope-line.horizontal {
+    height: 2px;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.scope-marks {
+    position: absolute;
+    display: flex;
+}
+
+.scope-marks.vertical {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 20% 0;
+}
+
+.scope-marks.horizontal {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0 20%;
+}
+
+.scope-marks span {
+    background: #000;
+}
+
+.scope-marks.vertical span {
+    width: 8px;
+    height: 2px;
+}
+
+.scope-marks.horizontal span {
+    width: 2px;
+    height: 8px;
+}
+
+/* Hide regular crosshair when scoped */
+.game-hud.scoped .crosshair {
+    display: none;
+}
