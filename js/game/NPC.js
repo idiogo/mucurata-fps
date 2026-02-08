@@ -883,7 +883,6 @@ class NPC {
     }
     
     takeDamage(amount, hitPart = null, isMelee = false) {
-        if (isMelee) console.log('🎯 NPC.takeDamage START, amount:', amount);
         if (this.isDead) return false;
         
         // Headshot bonus damage
@@ -891,46 +890,27 @@ class NPC {
             amount *= 2.5;
         }
         
-        // Store melee flag for fireBackAtPlayer
-        this._lastHitWasMelee = isMelee;
-        if (isMelee) console.log('🎯 NPC health before:', this.health);
-        
         this.health -= amount;
-        if (isMelee) console.log('🎯 NPC health after:', this.health);
         
-        // Flash red when hit - all body parts (quick, non-blocking)
-        try {
-            if (isMelee) console.log('🎯 Flashing body parts red...');
-            Object.values(this.bodyParts).forEach(part => {
-                if (part && part.material && part.material.diffuseColor) {
-                    const original = part.material.diffuseColor.clone();
-                    part.material.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
-                    
-                    setTimeout(() => {
-                        if (part && part.material) {
-                            part.material.diffuseColor = original;
-                        }
-                    }, 80);
-                }
-            });
-            if (isMelee) console.log('🎯 Body flash done');
-        } catch (e) {
-            console.error('🔴 Body flash error:', e);
-        }
+        // Flash red when hit - all body parts
+        Object.values(this.bodyParts).forEach(part => {
+            if (part && part.material && part.material.diffuseColor) {
+                const original = part.material.diffuseColor.clone();
+                part.material.diffuseColor = new BABYLON.Color3(1, 0.2, 0.2);
+                
+                setTimeout(() => {
+                    if (part && part.material) {
+                        part.material.diffuseColor = original;
+                    }
+                }, 80);
+            }
+        });
         
         // Alert nearby NPCs
-        try {
-            if (isMelee) console.log('🎯 Alerting nearby NPCs...');
-            this.alertNearbyNPCs();
-            if (isMelee) console.log('🎯 Alert done');
-        } catch (e) {
-            console.error('🔴 Alert NPCs error:', e);
-        }
+        this.alertNearbyNPCs();
         
         if (this.health <= 0) {
-            if (isMelee) console.log('🎯 NPC KILLED! Calling die()...');
             this.die();
-            if (isMelee) console.log('🎯 die() done');
             return true;
         }
         
@@ -944,28 +924,13 @@ class NPC {
             this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
             
-            // Look at player immediately (but not for melee - causes visual glitch at close range)
+            // Look at player and shoot back (skip for melee - too close)
             if (!isMelee) {
-                try {
-                    this.lookAt(player.collider.position);
-                } catch (e) {
-                    console.error('🔴 lookAt error:', e);
-                }
-            }
-            
-            // SHOOT BACK IMMEDIATELY - but not for melee (too close, causes visual glitch)
-            if (!isMelee) {
-                try {
-                    this.fireBackAtPlayer(player);
-                } catch (e) {
-                    console.error('🔴 fireBack error:', e);
-                }
-            } else {
-                console.log('🎯 Skipping fireBack (melee attack)');
+                this.lookAt(player.collider.position);
+                this.fireBackAtPlayer(player);
             }
         }
         
-        if (isMelee) console.log('🎯 NPC.takeDamage END');
         return false;
     }
     
@@ -974,9 +939,8 @@ class NPC {
         if (this.isDead || !player || player.isDead) return;
         if (!this.mesh || !player.collider) return;
         
-        try {
-            // Calculate distance for accuracy falloff
-            const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
+        // Calculate distance for accuracy falloff
+        const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
         
         // Accuracy decreases with distance but still has a chance
         let accuracy = this.accuracy;
@@ -1006,9 +970,6 @@ class NPC {
         
         // Reset fire time so they can keep shooting
         this.lastFireTime = performance.now();
-        } catch (e) {
-            console.error('fireBackAtPlayer error:', e);
-        }
     }
     
     alertNearbyNPCs() {
