@@ -16,7 +16,7 @@ const WeaponData = {
         name: 'Shotgun',
         damage: 25, // Per pellet, 8 pellets
         pellets: 8,
-        spread: 0.15,
+        spread: 0.06,
         range: 15,
         fireRate: 900, // ms between shots (pump action)
         reloadTime: 2500,
@@ -422,12 +422,21 @@ class Weapon {
         const hits = [];
         const origin = this.camera.position.clone();
         
+        // Get exact center of screen direction using camera's forward ray
+        const engine = this.scene.getEngine();
+        const centerX = engine.getRenderWidth() / 2;
+        const centerY = engine.getRenderHeight() / 2;
+        
+        // Create picking ray from screen center - this aligns with crosshair
+        const centerRay = this.scene.createPickingRay(centerX, centerY, BABYLON.Matrix.Identity(), this.camera);
+        const baseDirection = centerRay.direction.clone();
+        
         for (let i = 0; i < this.data.pellets; i++) {
             // Calculate spread
             const spreadX = (Math.random() - 0.5) * this.data.spread;
             const spreadY = (Math.random() - 0.5) * this.data.spread;
             
-            const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
+            const direction = baseDirection.clone();
             direction.x += spreadX;
             direction.y += spreadY;
             direction.normalize();
@@ -453,7 +462,14 @@ class Weapon {
     meleeAttack() {
         try {
             const origin = this.camera.position.clone();
-            const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
+            
+            // Get exact center of screen direction
+            const engine = this.scene.getEngine();
+            const centerX = engine.getRenderWidth() / 2;
+            const centerY = engine.getRenderHeight() / 2;
+            const centerRay = this.scene.createPickingRay(centerX, centerY, BABYLON.Matrix.Identity(), this.camera);
+            const direction = centerRay.direction.clone();
+            
             const ray = new BABYLON.Ray(origin, direction, this.data.range);
             
             const hit = this.scene.pickWithRay(ray, (mesh) => {

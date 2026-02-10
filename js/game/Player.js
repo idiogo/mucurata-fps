@@ -18,7 +18,7 @@ class Player {
         this.walkSpeed = 8;
         this.runSpeed = 14;
         this.crouchSpeed = 4;
-        this.jumpForce = 8;
+        this.jumpForce = 14;
         this.gravity = -25;
         this.isRunning = false;
         this.isCrouching = false;
@@ -33,6 +33,11 @@ class Player {
         this.camera = null;
         this.cameraHeight = 1.7;
         this.crouchHeight = 1.0;
+        this.isThirdPerson = false;
+        this.thirdPersonDistance = 5;
+        
+        // Player model (for 3rd person)
+        this.playerModel = null;
         
         // Physics body
         this.collider = null;
@@ -59,8 +64,81 @@ class Player {
         // Initialize
         this.createCamera();
         this.createCollider();
+        this.createPlayerModel();
         this.setupWeapons(primaryWeapon);
         this.setupInput();
+    }
+    
+    createPlayerModel() {
+        // Create visible player model for 3rd person view
+        const model = new BABYLON.TransformNode("playerModel", this.scene);
+        
+        // Get skin color
+        const skinColor = skinSelector ? skinSelector.getSkinColor() : '#3498db';
+        const color = BABYLON.Color3.FromHexString(skinColor);
+        
+        const mat = new BABYLON.StandardMaterial("playerMat", this.scene);
+        mat.diffuseColor = color;
+        
+        const matDark = new BABYLON.StandardMaterial("playerMatDark", this.scene);
+        matDark.diffuseColor = color.scale(0.6);
+        
+        // Head
+        const head = BABYLON.MeshBuilder.CreateSphere("playerHead", { diameter: 0.35 }, this.scene);
+        head.position.y = 1.55;
+        head.material = mat;
+        head.parent = model;
+        
+        // Body (torso)
+        const body = BABYLON.MeshBuilder.CreateBox("playerBody", { width: 0.45, height: 0.55, depth: 0.25 }, this.scene);
+        body.position.y = 1.1;
+        body.material = mat;
+        body.parent = model;
+        
+        // Legs
+        const legL = BABYLON.MeshBuilder.CreateBox("playerLegL", { width: 0.18, height: 0.75, depth: 0.18 }, this.scene);
+        legL.position = new BABYLON.Vector3(-0.12, 0.4, 0);
+        legL.material = matDark;
+        legL.parent = model;
+        
+        const legR = BABYLON.MeshBuilder.CreateBox("playerLegR", { width: 0.18, height: 0.75, depth: 0.18 }, this.scene);
+        legR.position = new BABYLON.Vector3(0.12, 0.4, 0);
+        legR.material = matDark;
+        legR.parent = model;
+        
+        // Arms (junto ao corpo)
+        const armL = BABYLON.MeshBuilder.CreateBox("playerArmL", { width: 0.12, height: 0.5, depth: 0.12 }, this.scene);
+        armL.position = new BABYLON.Vector3(-0.32, 1.05, 0);
+        armL.material = mat;
+        armL.parent = model;
+        
+        const armR = BABYLON.MeshBuilder.CreateBox("playerArmR", { width: 0.12, height: 0.5, depth: 0.12 }, this.scene);
+        armR.position = new BABYLON.Vector3(0.32, 1.05, 0);
+        armR.material = mat;
+        armR.parent = model;
+        
+        this.playerModel = model;
+        this.playerModel.setEnabled(false); // Hidden in 1st person
+    }
+    
+    toggleThirdPerson() {
+        this.isThirdPerson = !this.isThirdPerson;
+        
+        if (this.isThirdPerson) {
+            // Show player model
+            this.playerModel.setEnabled(true);
+            // Hide ALL weapons
+            Object.values(this.weapons).forEach(w => {
+                if (w && w.mesh) w.mesh.setEnabled(false);
+            });
+        } else {
+            // Hide player model
+            this.playerModel.setEnabled(false);
+            // Show current weapon
+            if (this.currentWeapon && this.currentWeapon.mesh) {
+                this.currentWeapon.mesh.setEnabled(true);
+            }
+        }
     }
     
     createCamera() {
@@ -225,6 +303,9 @@ class Player {
             case 'KeyG':
                 this.throwGrenade();
                 break;
+            case 'KeyT':
+                this.toggleThirdPerson();
+                break;
             case 'Escape':
                 if (window.gameInstance) {
                     window.gameInstance.togglePause();
@@ -385,8 +466,31 @@ class Player {
         
         // Update camera position
         const targetHeight = this.isCrouching ? this.crouchHeight : this.cameraHeight;
-        this.camera.position = this.collider.position.clone();
-        this.camera.position.y = this.collider.position.y + targetHeight - 0.9;
+        
+        if (this.isThirdPerson) {
+            // Third person camera - behind and above player
+            const forward = new BABYLON.Vector3(
+                Math.sin(this.camera.rotation.y),
+                0,
+                Math.cos(this.camera.rotation.y)
+            );
+            const cameraOffset = forward.scale(-this.thirdPersonDistance);
+            cameraOffset.y = 2.5;
+            
+            this.camera.position = this.collider.position.add(cameraOffset);
+            
+            // Update player model position (on ground) and rotation
+            if (this.playerModel) {
+                this.playerModel.position.x = this.collider.position.x;
+                this.playerModel.position.y = this.collider.position.y - 0.9; // On ground
+                this.playerModel.position.z = this.collider.position.z;
+                this.playerModel.rotation.y = this.camera.rotation.y;
+            }
+        } else {
+            // First person camera
+            this.camera.position = this.collider.position.clone();
+            this.camera.position.y = this.collider.position.y + targetHeight - 0.9;
+        }
     }
     
     updateWeapon(deltaTime) {
@@ -419,6 +523,8 @@ class Player {
                         if (killed) {
                             this.kills++;
                             this.updateKillsUI();
+                            // Give money for kill
+                            if (shopInstance) shopInstance.onKill();
                         }
                     }
                 } else if (hit.point) {
@@ -494,6 +600,9 @@ class Player {
             this.currentWeapon.hide();
             this.currentWeapon.cancelReload();
         }
+        
+        // Reset all sights/scopes when switching weapons
+        this.aim(false);
         
         // Show new weapon
         this.currentWeaponSlot = slot;
@@ -588,6 +697,8 @@ class Player {
                     if (killed) {
                         this.kills++;
                         this.updateKillsUI();
+                        // Give money for kill
+                        if (shopInstance) shopInstance.onKill();
                     }
                 }
             }

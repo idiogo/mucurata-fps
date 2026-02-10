@@ -16,6 +16,7 @@ class Game {
         // Game settings
         this.team = null;
         this.primaryWeapon = null;
+        this.selectedMap = null;
         this.difficulty = 'normal';
         this.enemyCount = 10;
         
@@ -50,11 +51,12 @@ class Game {
         console.log('Game engine initialized');
     }
     
-    async start(team, primaryWeapon) {
+    async start(team, primaryWeapon, selectedMap = 'favela') {
         this.team = team;
         this.primaryWeapon = primaryWeapon;
+        this.selectedMap = selectedMap;
         
-        console.log(`Starting game as ${team} with ${primaryWeapon}`);
+        console.log(`Starting game as ${team} with ${primaryWeapon} on map ${selectedMap}`);
         
         // Create scene
         await this.createScene();
@@ -89,8 +91,12 @@ class Game {
             // Use Babylon's built-in collision system (no physics engine needed)
             console.log('Scene created, using collision system');
         
-        // Generate map
-        this.map = new FavelaMap(this.scene);
+        // Generate map based on selection
+        if (this.selectedMap === 'roca') {
+            this.map = new RocaMap(this.scene);
+        } else {
+            this.map = new FavelaMap(this.scene);
+        }
         this.map.generate();
         
         // Create player
@@ -437,9 +443,11 @@ class Game {
             title.style.color = '#ff0000';
         }
         
+        const moneyEarned = this.player.kills * 100;
         stats.innerHTML = `
             Eliminações: ${this.player.kills}<br>
-            Tempo: ${Utils.formatTime(this.gameTime)}
+            Tempo: ${Utils.formatTime(this.gameTime)}<br>
+            Dinheiro coletado: R$ ${moneyEarned.toLocaleString('pt-BR')}
         `;
         
         gameOverScreen.style.display = 'flex';
@@ -470,7 +478,7 @@ class Game {
     
     restart() {
         this.cleanup();
-        this.start(this.team, this.primaryWeapon);
+        this.start(this.team, this.primaryWeapon, this.selectedMap);
         
         document.getElementById('pause-menu').style.display = 'none';
         document.getElementById('game-over').style.display = 'none';
