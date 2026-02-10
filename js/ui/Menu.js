@@ -5,16 +5,29 @@
 class MenuController {
     constructor() {
         this.selectedTeam = null;
+        this.selectedMap = null;
         this.selectedWeapon = null;
         
         this.init();
     }
     
     init() {
+        // Initialize shop system
+        initShop();
+        
+        // Initialize skin selector
+        initSkins();
+        
         // Team selection
         const teamButtons = document.querySelectorAll('.team-btn');
         teamButtons.forEach(btn => {
             btn.addEventListener('click', () => this.selectTeam(btn.dataset.team, btn));
+        });
+        
+        // Map selection
+        const mapButtons = document.querySelectorAll('.map-btn');
+        mapButtons.forEach(btn => {
+            btn.addEventListener('click', () => this.selectMap(btn.dataset.map, btn));
         });
         
         // Weapon selection
@@ -73,6 +86,26 @@ class MenuController {
         button.classList.add('selected');
         this.selectedTeam = team;
         
+        // Show map selection
+        document.getElementById('map-section').style.display = 'block';
+        
+        // Check if can start
+        this.checkCanStart();
+        
+        // Play sound effect
+        this.playSelectSound();
+    }
+    
+    selectMap(map, button) {
+        // Remove selection from all map buttons
+        document.querySelectorAll('.map-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Select this map
+        button.classList.add('selected');
+        this.selectedMap = map;
+        
         // Show weapon selection
         document.getElementById('weapon-section').style.display = 'block';
         
@@ -84,6 +117,11 @@ class MenuController {
     }
     
     selectWeapon(weapon, button) {
+        // Check if weapon is owned
+        if (shopInstance && !shopInstance.isWeaponOwned(weapon)) {
+            return; // Can't select locked weapon
+        }
+        
         // Remove selection from all weapon buttons
         document.querySelectorAll('.weapon-btn').forEach(btn => {
             btn.classList.remove('selected');
@@ -103,7 +141,7 @@ class MenuController {
     checkCanStart() {
         const startBtn = document.getElementById('start-game');
         
-        if (this.selectedTeam && this.selectedWeapon) {
+        if (this.selectedTeam && this.selectedMap && this.selectedWeapon) {
             startBtn.style.display = 'inline-block';
         } else {
             startBtn.style.display = 'none';
@@ -111,7 +149,7 @@ class MenuController {
     }
     
     async startGame() {
-        if (!this.selectedTeam || !this.selectedWeapon) return;
+        if (!this.selectedTeam || !this.selectedMap || !this.selectedWeapon) return;
         
         // Map weapon selection to weapon type
         const weaponMap = {
@@ -125,21 +163,23 @@ class MenuController {
         // Hide menu
         document.getElementById('main-menu').style.display = 'none';
         
-        // Start game
+        // Start game with selected map
         if (window.gameInstance) {
-            await window.gameInstance.start(this.selectedTeam, weaponType);
+            await window.gameInstance.start(this.selectedTeam, weaponType, this.selectedMap);
         }
     }
     
     reset() {
         this.selectedTeam = null;
+        this.selectedMap = null;
         this.selectedWeapon = null;
         
         // Reset UI
-        document.querySelectorAll('.team-btn, .weapon-btn').forEach(btn => {
+        document.querySelectorAll('.team-btn, .map-btn, .weapon-btn').forEach(btn => {
             btn.classList.remove('selected');
         });
         
+        document.getElementById('map-section').style.display = 'none';
         document.getElementById('weapon-section').style.display = 'none';
         document.getElementById('start-game').style.display = 'none';
     }

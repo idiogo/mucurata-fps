@@ -63,12 +63,12 @@ class FavelaMap {
         woodMat.bumpTexture = this.createNoiseTexture("woodBump", 0.25);
         this.materials.wood = woodMat;
         
-        // Ground material - dirt/asphalt mix
-        const groundMat = new BABYLON.PBRMaterial("groundMat", this.scene);
-        groundMat.albedoColor = new BABYLON.Color3(0.3, 0.28, 0.24);
-        groundMat.roughness = 0.98;
-        groundMat.metallic = 0;
-        groundMat.bumpTexture = this.createNoiseTexture("groundBump", 0.15);
+        // Ground material - dirt texture
+        const groundMat = new BABYLON.StandardMaterial("groundMat", this.scene);
+        groundMat.diffuseTexture = new BABYLON.Texture("textures/dirt.png", this.scene);
+        groundMat.diffuseTexture.uScale = 30;
+        groundMat.diffuseTexture.vScale = 30;
+        groundMat.specularColor = new BABYLON.Color3(0, 0, 0);
         this.materials.ground = groundMat;
         
         // Exposed brick walls - FAVELA STYLE! (no plaster/reboco)
@@ -211,6 +211,9 @@ class FavelaMap {
         // Create ground
         this.createGround();
         
+        // Create invisible barriers around map edges
+        this.createBarriers();
+        
         // Create hillside terrain
         this.createTerrain();
         
@@ -233,19 +236,74 @@ class FavelaMap {
         this.createSkybox();
     }
     
+    createBarriers() {
+        // Invisible walls around the map to prevent players from leaving
+        const barrierHeight = 20;
+        const barrierThickness = 2;
+        const mapHalfSize = this.width; // Map goes from -width to +width
+        
+        const createBarrier = (name, width, height, depth, x, y, z) => {
+            const barrier = BABYLON.MeshBuilder.CreateBox(name, {
+                width: width,
+                height: height,
+                depth: depth
+            }, this.scene);
+            barrier.position = new BABYLON.Vector3(x, y, z);
+            barrier.visibility = 0; // Invisible
+            barrier.checkCollisions = true;
+            barrier.isPickable = false;
+            this.meshes.push(barrier);
+            return barrier;
+        };
+        
+        // North barrier (positive Z)
+        createBarrier("barrierNorth", mapHalfSize * 2, barrierHeight, barrierThickness, 
+            0, barrierHeight / 2, mapHalfSize + barrierThickness / 2);
+        
+        // South barrier (negative Z)
+        createBarrier("barrierSouth", mapHalfSize * 2, barrierHeight, barrierThickness,
+            0, barrierHeight / 2, -mapHalfSize - barrierThickness / 2);
+        
+        // East barrier (positive X)
+        createBarrier("barrierEast", barrierThickness, barrierHeight, mapHalfSize * 2,
+            mapHalfSize + barrierThickness / 2, barrierHeight / 2, 0);
+        
+        // West barrier (negative X)
+        createBarrier("barrierWest", barrierThickness, barrierHeight, mapHalfSize * 2,
+            -mapHalfSize - barrierThickness / 2, barrierHeight / 2, 0);
+    }
+    
     createGround() {
         const ground = BABYLON.MeshBuilder.CreateGround("ground", {
             width: this.width * 2,
             height: this.depth * 2,
-            subdivisions: 32
+            subdivisions: 1
         }, this.scene);
         
+        ground.position.y = -0.01;
         ground.material = this.materials.ground;
-        ground.receiveShadows = true;
+        ground.receiveShadows = false;
         ground.checkCollisions = true;
         ground.isPickable = true;
         
         this.meshes.push(ground);
+        
+        // Second layer to cover any gaps
+        const ground2 = BABYLON.MeshBuilder.CreateGround("ground2", {
+            width: this.width * 2.5,
+            height: this.depth * 2.5,
+            subdivisions: 1
+        }, this.scene);
+        
+        ground2.position.y = -0.1;
+        const blackMat = new BABYLON.StandardMaterial("blackMat", this.scene);
+        blackMat.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2);
+        blackMat.specularColor = new BABYLON.Color3(0, 0, 0);
+        ground2.material = blackMat;
+        ground2.receiveShadows = false;
+        ground2.isPickable = false;
+        
+        this.meshes.push(ground2);
     }
     
     createTerrain() {
@@ -724,7 +782,7 @@ class FavelaMap {
         shadowGenerator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_HIGH;
         shadowGenerator.bias = 0.001;
         shadowGenerator.normalBias = 0.02;
-        shadowGenerator.darkness = 0.3; // Not too dark
+        shadowGenerator.darkness = 0.1; // Very light shadows
         
         // Cascaded shadows for better quality at distance
         sun.shadowMinZ = 1;

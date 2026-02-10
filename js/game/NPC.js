@@ -31,6 +31,7 @@ class NPC {
         this.isDead = false;
         this.isAggro = false; // Once aggro, NEVER stops hunting!
         this.lastFireTime = 0;
+        this.stunUntil = 0; // Can't shoot while stunned
         this.lastSeenPlayerTime = 0;
         this.lastSeenPlayerPos = null;
         
@@ -823,6 +824,9 @@ class NPC {
     tryFireAtPlayer(player) {
         const now = performance.now();
         
+        // Can't shoot while stunned
+        if (now < this.stunUntil) return;
+        
         if (now - this.lastFireTime < this.fireRate) return;
         
         // Check if we can actually see the player
@@ -882,8 +886,11 @@ class NPC {
         }, 60);
     }
     
-    takeDamage(amount, hitPart = null) {
+    takeDamage(amount, hitPart = null, isMelee = false) {
         if (this.isDead) return false;
+        
+        // STUN the NPC - can't shoot back for 500ms
+        this.stunUntil = performance.now() + 500;
         
         // Headshot bonus damage
         if (hitPart && hitPart.name && hitPart.name.includes('head')) {
@@ -892,7 +899,7 @@ class NPC {
         
         this.health -= amount;
         
-        // Flash red when hit - all body parts (quick, non-blocking)
+        // Flash red when hit - all body parts
         Object.values(this.bodyParts).forEach(part => {
             if (part && part.material && part.material.diffuseColor) {
                 const original = part.material.diffuseColor.clone();
@@ -924,11 +931,12 @@ class NPC {
             this.lastSeenPlayerPos = player.collider.position.clone();
             this.lastSeenPlayerTime = performance.now();
             
-            // Look at player immediately
-            this.lookAt(player.collider.position);
-            
-            // SHOOT BACK IMMEDIATELY - even from far away!
-            this.fireBackAtPlayer(player);
+            // Look at player and shoot back (skip for melee - too close)
+            // Also skip if health is very low (about to die from next pellet)
+            if (!isMelee && this.health > 30) {
+                this.lookAt(player.collider.position);
+                this.fireBackAtPlayer(player);
+            }
         }
         
         return false;
@@ -936,7 +944,11 @@ class NPC {
     
     // Special method to fire back when hit - ignores distance/visibility
     fireBackAtPlayer(player) {
-        if (this.isDead || player.isDead) return;
+        if (this.isDead || !player || player.isDead) return;
+        if (!this.mesh || !player.collider) return;
+        
+        // Can't shoot while stunned
+        if (performance.now() < this.stunUntil) return;
         
         // Calculate distance for accuracy falloff
         const distance = BABYLON.Vector3.Distance(this.mesh.position, player.collider.position);
@@ -961,8 +973,10 @@ class NPC {
             player.takeDamage(damage);
         }
         
-        // Visual/audio feedback
-        this.createMuzzleFlash();
+        // Visual/audio feedback (skip flash if player is very close - melee range)
+        if (distance > 4) {
+            this.createMuzzleFlash();
+        }
         Utils.playSound(this.scene, 'shoot');
         
         // Reset fire time so they can keep shooting

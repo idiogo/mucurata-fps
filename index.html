@@ -12,6 +12,31 @@
 <body>
     <!-- Main Menu -->
     <div id="main-menu" class="menu-screen">
+        <!-- Shop Button & Money Display -->
+        <div class="menu-top-bar">
+            <button id="shop-btn" class="shop-btn">🛒 LOJA</button>
+            <div class="money-display">💰 R$ <span id="player-money">500</span></div>
+        </div>
+        
+        <!-- Character Preview & Skin Selector -->
+        <div class="skin-selector">
+            <div class="skin-preview">
+                <div class="character-model" id="character-model">
+                    <div class="char-head"></div>
+                    <div class="char-body"></div>
+                    <div class="char-arm left"></div>
+                    <div class="char-arm right"></div>
+                    <div class="char-leg left"></div>
+                    <div class="char-leg right"></div>
+                </div>
+            </div>
+            <div class="skin-controls">
+                <button class="skin-arrow left" id="skin-prev">◀</button>
+                <span class="skin-name" id="skin-name">Padrão</span>
+                <button class="skin-arrow right" id="skin-next">▶</button>
+            </div>
+        </div>
+        
         <div class="menu-content">
             <h1 class="game-title">MUCURATÁ FPS</h1>
             
@@ -27,6 +52,22 @@
                         <span class="team-icon">💀</span>
                         <span class="team-name">BANDIDO</span>
                         <span class="team-desc">Comando da Favela</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="menu-section" id="map-section" style="display: none;">
+                <h2>Escolha o mapa</h2>
+                <div class="map-selection">
+                    <button class="map-btn" data-map="favela">
+                        <span class="map-icon">🏚️</span>
+                        <span class="map-name">FAVELA</span>
+                        <span class="map-desc">Becos estreitos, prédios em ruínas</span>
+                    </button>
+                    <button class="map-btn" data-map="roca">
+                        <span class="map-icon">🌾</span>
+                        <span class="map-name">ROÇA</span>
+                        <span class="map-desc">Fazenda com casas, piscina e árvores</span>
                     </button>
                 </div>
             </div>
@@ -115,6 +156,52 @@
         
         <div class="hitmarker" id="hitmarker"></div>
         <div class="damage-indicator" id="damage-indicator"></div>
+        
+        <!-- Sniper Scope Overlay -->
+        <div id="sniper-scope" class="sniper-scope" style="display: none;">
+            <div class="scope-overlay"></div>
+            <div class="scope-crosshair">
+                <div class="scope-line vertical"></div>
+                <div class="scope-line horizontal"></div>
+                <!-- Distance markings -->
+                <div class="scope-marks vertical">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="scope-marks horizontal">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Iron Sights Overlay (AR-15) -->
+        <div id="iron-sights" class="iron-sights" style="display: none;">
+            <div class="iron-sights-post">
+                <div class="front-post"></div>
+            </div>
+            <div class="iron-sights-rear">
+                <div class="rear-left"></div>
+                <div class="rear-aperture"></div>
+                <div class="rear-right"></div>
+            </div>
+        </div>
+        
+        <!-- Shotgun Sight Overlay -->
+        <div id="shotgun-sight" class="shotgun-sight" style="display: none;">
+            <div class="shotgun-circle"></div>
+            <div class="shotgun-cross">
+                <div class="cross-line vertical"></div>
+                <div class="cross-line horizontal"></div>
+                <div class="cross-dot"></div>
+            </div>
+            <div class="cross-marks">
+                <span class="mark top"></span>
+                <span class="mark bottom"></span>
+                <span class="mark left"></span>
+                <span class="mark right"></span>
+            </div>
+        </div>
     </div>
     
     <!-- Pause Menu -->
@@ -137,13 +224,77 @@
         </div>
     </div>
 
+    <!-- Shop Screen -->
+    <div id="shop-screen" class="menu-screen" style="display: none;">
+        <div class="shop-content">
+            <div class="shop-header">
+                <h1>🛒 LOJA DE ARMAS</h1>
+                <div class="shop-money">💰 R$ <span id="shop-money">500</span></div>
+                <button id="close-shop" class="close-btn">✕</button>
+            </div>
+            
+            <div class="shop-items">
+                <div class="shop-category">
+                    <h2>🔫 Armas Principais</h2>
+                    <div class="shop-grid">
+                        <div class="shop-item" data-weapon="shotgun" data-price="0">
+                            <div class="item-icon">🔫</div>
+                            <div class="item-name">SHOTGUN</div>
+                            <div class="item-desc">Devastador de perto</div>
+                            <div class="item-price owned">✓ DESBLOQUEADA</div>
+                        </div>
+                        <div class="shop-item" data-weapon="sniper" data-price="1000">
+                            <div class="item-icon">🎯</div>
+                            <div class="item-name">SNIPER</div>
+                            <div class="item-desc">Um tiro, uma morte</div>
+                            <div class="item-price">R$ 1.000</div>
+                            <button class="buy-btn">COMPRAR</button>
+                        </div>
+                        <div class="shop-item" data-weapon="ar15" data-price="800">
+                            <div class="item-icon">💥</div>
+                            <div class="item-name">AR-15</div>
+                            <div class="item-desc">Automático e versátil</div>
+                            <div class="item-price">R$ 800</div>
+                            <button class="buy-btn">COMPRAR</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="shop-category">
+                    <h2>💣 Equipamentos</h2>
+                    <div class="shop-grid">
+                        <div class="shop-item" data-item="grenade" data-price="200">
+                            <div class="item-icon">💣</div>
+                            <div class="item-name">GRANADA</div>
+                            <div class="item-desc">+3 granadas extras</div>
+                            <div class="item-price">R$ 200</div>
+                            <button class="buy-btn">COMPRAR</button>
+                        </div>
+                        <div class="shop-item" data-item="armor" data-price="500">
+                            <div class="item-icon">🛡️</div>
+                            <div class="item-name">COLETE</div>
+                            <div class="item-desc">+50 HP extra</div>
+                            <div class="item-price">R$ 500</div>
+                            <button class="buy-btn">COMPRAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="shop-tip">💡 Ganhe R$ 100 por cada inimigo eliminado!</div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/utils/helpers.js"></script>
     <script src="js/game/Weapons.js"></script>
     <script src="js/game/Player.js"></script>
     <script src="js/game/NPC.js"></script>
     <script src="js/game/Map.js"></script>
+    <script src="js/game/RocaMap.js"></script>
     <script src="js/game/Game.js"></script>
+    <script src="js/ui/Shop.js"></script>
+    <script src="js/ui/Skins.js"></script>
     <script src="js/ui/Menu.js"></script>
     <script src="js/main.js"></script>
 </body>

@@ -16,7 +16,7 @@ const WeaponData = {
         name: 'Shotgun',
         damage: 25, // Per pellet, 8 pellets
         pellets: 8,
-        spread: 0.15,
+        spread: 0.06,
         range: 15,
         fireRate: 900, // ms between shots (pump action)
         reloadTime: 2500,
@@ -24,7 +24,9 @@ const WeaponData = {
         reserveAmmo: 24,
         automatic: false,
         recoil: 0.15,
-        moveSpeed: 0.9
+        moveSpeed: 0.9,
+        adsZoom: 1.3,
+        hasShotgunSight: true
     },
     [WeaponTypes.SNIPER]: {
         name: 'Sniper',
@@ -53,7 +55,9 @@ const WeaponData = {
         reserveAmmo: 120,
         automatic: true,
         recoil: 0.04,
-        moveSpeed: 0.95
+        moveSpeed: 0.95,
+        adsZoom: 1.5, // Iron sights zoom
+        hasIronSights: true
     },
     [WeaponTypes.PISTOL]: {
         name: 'Pistola',
@@ -75,7 +79,8 @@ const WeaponData = {
         backstabMultiplier: 2,
         range: 2.5,
         fireRate: 500,
-        moveSpeed: 1.1
+        moveSpeed: 1.1,
+        recoil: 0 // IMPORTANT: must be 0, not undefined, or camera breaks!
     },
     [WeaponTypes.GRENADE]: {
         name: 'Granada',
@@ -302,28 +307,53 @@ class Weapon {
     
     createKnifeMesh(parent) {
         const bladeMat = new BABYLON.StandardMaterial("bladeMat", this.scene);
-        bladeMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.75);
-        bladeMat.specularColor = new BABYLON.Color3(1, 1, 1);
+        bladeMat.diffuseColor = new BABYLON.Color3(0.75, 0.75, 0.8);
+        bladeMat.specularColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+        bladeMat.specularPower = 64;
         
         const handleMat = new BABYLON.StandardMaterial("handleMat", this.scene);
-        handleMat.diffuseColor = new BABYLON.Color3(0.2, 0.15, 0.1);
+        handleMat.diffuseColor = new BABYLON.Color3(0.15, 0.1, 0.05);
         
-        // Blade
+        // Blade - tactical knife style (larger, visible)
         const blade = BABYLON.MeshBuilder.CreateBox("blade", {
-            width: 0.01, height: 0.03, depth: 0.2
+            width: 0.008, height: 0.04, depth: 0.18
         }, this.scene);
-        blade.position = new BABYLON.Vector3(0.35, -0.2, 0.2);
+        blade.position = new BABYLON.Vector3(0.32, -0.22, 0.24);
+        blade.rotation.x = -0.1; // Slight angle like holding a knife
         blade.material = bladeMat;
         blade.parent = parent;
+        blade.isPickable = false;
+        
+        // Blade edge (darker line on the edge)
+        const edge = BABYLON.MeshBuilder.CreateBox("edge", {
+            width: 0.002, height: 0.035, depth: 0.16
+        }, this.scene);
+        edge.position = new BABYLON.Vector3(0.32, -0.225, 0.25);
+        edge.rotation.x = -0.1;
+        const edgeMat = new BABYLON.StandardMaterial("edgeMat", this.scene);
+        edgeMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.45);
+        edge.material = edgeMat;
+        edge.parent = parent;
+        edge.isPickable = false;
         
         // Handle
         const handle = BABYLON.MeshBuilder.CreateCylinder("handle", {
-            diameter: 0.025, height: 0.12
+            diameter: 0.028, height: 0.11
         }, this.scene);
         handle.rotation.x = Math.PI / 2;
-        handle.position = new BABYLON.Vector3(0.35, -0.2, 0.05);
+        handle.position = new BABYLON.Vector3(0.32, -0.22, 0.08);
         handle.material = handleMat;
         handle.parent = parent;
+        handle.isPickable = false;
+        
+        // Guard (between blade and handle)
+        const guard = BABYLON.MeshBuilder.CreateBox("guard", {
+            width: 0.04, height: 0.015, depth: 0.015
+        }, this.scene);
+        guard.position = new BABYLON.Vector3(0.32, -0.22, 0.14);
+        guard.material = handleMat;
+        guard.parent = parent;
+        guard.isPickable = false;
     }
     
     createMuzzleFlash() {
@@ -392,12 +422,21 @@ class Weapon {
         const hits = [];
         const origin = this.camera.position.clone();
         
+        // Get exact center of screen direction using camera's forward ray
+        const engine = this.scene.getEngine();
+        const centerX = engine.getRenderWidth() / 2;
+        const centerY = engine.getRenderHeight() / 2;
+        
+        // Create picking ray from screen center - this aligns with crosshair
+        const centerRay = this.scene.createPickingRay(centerX, centerY, BABYLON.Matrix.Identity(), this.camera);
+        const baseDirection = centerRay.direction.clone();
+        
         for (let i = 0; i < this.data.pellets; i++) {
             // Calculate spread
             const spreadX = (Math.random() - 0.5) * this.data.spread;
             const spreadY = (Math.random() - 0.5) * this.data.spread;
             
-            const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
+            const direction = baseDirection.clone();
             direction.x += spreadX;
             direction.y += spreadY;
             direction.normalize();
@@ -421,31 +460,57 @@ class Weapon {
     }
     
     meleeAttack() {
-        const origin = this.camera.position.clone();
-        const direction = this.camera.getDirection(BABYLON.Vector3.Forward());
-        const ray = new BABYLON.Ray(origin, direction, this.data.range);
-        
-        const hit = this.scene.pickWithRay(ray, (mesh) => {
-            return mesh.isPickable && mesh.metadata && mesh.metadata.isNPC;
-        });
-        
-        if (hit && hit.hit) {
-            // Check if backstab
-            const npc = hit.pickedMesh;
-            const toPlayer = this.camera.position.subtract(npc.position).normalize();
-            const npcForward = npc.getDirection(BABYLON.Vector3.Forward());
-            const dot = BABYLON.Vector3.Dot(toPlayer, npcForward);
+        try {
+            const origin = this.camera.position.clone();
             
-            const isBackstab = dot > 0.5; // Behind the enemy
-            const damage = isBackstab ? 200 : this.data.damage; // Insta-kill from behind
+            // Get exact center of screen direction
+            const engine = this.scene.getEngine();
+            const centerX = engine.getRenderWidth() / 2;
+            const centerY = engine.getRenderHeight() / 2;
+            const centerRay = this.scene.createPickingRay(centerX, centerY, BABYLON.Matrix.Identity(), this.camera);
+            const direction = centerRay.direction.clone();
             
-            return [{
-                mesh: npc,
-                point: hit.pickedPoint,
-                distance: hit.distance,
-                damage: damage,
-                isBackstab: isBackstab
-            }];
+            const ray = new BABYLON.Ray(origin, direction, this.data.range);
+            
+            const hit = this.scene.pickWithRay(ray, (mesh) => {
+                return mesh.isPickable && mesh.metadata && mesh.metadata.isNPC;
+            });
+            
+            if (hit && hit.hit) {
+                const hitMesh = hit.pickedMesh;
+                const npcInstance = hitMesh.metadata ? hitMesh.metadata.npcInstance : null;
+                
+                // Check if backstab - use the NPC's main mesh for direction
+                let isBackstab = false;
+                if (npcInstance && npcInstance.mesh) {
+                    try {
+                        const npcMesh = npcInstance.mesh;
+                        const toPlayer = this.camera.position.subtract(npcMesh.position).normalize();
+                        // NPC forward is based on its Y rotation
+                        const npcAngle = npcMesh.rotation ? npcMesh.rotation.y : 0;
+                        const npcForward = new BABYLON.Vector3(Math.sin(npcAngle), 0, Math.cos(npcAngle));
+                        const dot = BABYLON.Vector3.Dot(toPlayer, npcForward);
+                        isBackstab = dot > 0.5; // Behind the enemy
+                    } catch (e) {
+                        console.warn('Backstab check error:', e);
+                    }
+                }
+                
+                const damage = isBackstab ? 200 : this.data.damage; // Insta-kill from behind
+                
+                // Play knife hit sound
+                Utils.playSound(this.scene, 'hit');
+                
+                return [{
+                    mesh: hitMesh,
+                    point: hit.pickedPoint,
+                    distance: hit.distance,
+                    damage: damage,
+                    isBackstab: isBackstab
+                }];
+            }
+        } catch (e) {
+            console.error('Melee attack error:', e);
         }
         
         return [];
